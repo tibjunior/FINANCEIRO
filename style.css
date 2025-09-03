@@ -109,7 +109,6 @@ body.light-theme #loading-overlay { background-color: var(--bg-light); }
         pointer-events: none;
         transition: opacity 0.3s ease-in-out;
     }
-}
 .desktop-only {
     display: flex;
 }
