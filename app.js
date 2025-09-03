@@ -93,6 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300); // Aguarda a transição do CSS
     }
 
+    // Função para detectar se o dispositivo é mobile (baseado em toque e largura)
+    function isMobileDevice() {
+        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 992);
+    }
+
     // --- LÓGICA PRINCIPAL ---
     setupAuthListeners();
     auth.onAuthStateChanged(user => {
@@ -110,13 +115,18 @@ document.addEventListener('DOMContentLoaded', () => {
         themeToggle.querySelector('i').className = 'bx bx-moon';
     }
 
-    // Aplica o estado do sidebar salvo ou o padrão (recolhido)
-    if (localStorage.getItem('sidebarCollapsed') === 'false') {
-        body.classList.remove('sidebar-collapsed');
-        document.querySelector('#sidebar-toggle-btn i').className = 'bx bx-chevrons-left';
+    // Se for um dispositivo móvel, a sidebar sempre começa fechada (não recolhida, mas fora da tela).
+    // Se for desktop, aplica o estado salvo ou o padrão (recolhido).
+    if (!isMobileDevice()) {
+        if (localStorage.getItem('sidebarCollapsed') === 'false') {
+            body.classList.remove('sidebar-collapsed');
+            document.querySelector('#sidebar-toggle-btn i').className = 'bx bx-chevrons-left';
+        } else {
+            body.classList.add('sidebar-collapsed');
+            document.querySelector('#sidebar-toggle-btn i').className = 'bx bx-chevrons-right';
+        }
     } else {
-        body.classList.add('sidebar-collapsed');
-        document.querySelector('#sidebar-toggle-btn i').className = 'bx bx-chevrons-right';
+        // No mobile, não aplicamos o 'sidebar-collapsed', pois o menu é controlado por 'sidebar-open'
     }
 
     // --- SETUP DA TELA DE LOGIN ---
