@@ -45,6 +45,38 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingOverlay.classList.add('hidden');
     }
 
+    function showToast(message, type = 'success') {
+        const container = document.getElementById('toast-container');
+        if (!container) return; // Evita erros se o container não existir
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        const iconClass = type === 'success' ? 'bx-check-circle' : 'bx-x-circle';
+        toast.innerHTML = `<i class='bx ${iconClass}'></i> ${message}`;
+        container.appendChild(toast);
+
+        // O toast se autodestruirá após 5 segundos
+        setTimeout(() => {
+            toast.style.animation = 'fadeOutToast 0.5s ease forwards';
+            toast.addEventListener('animationend', () => toast.remove());
+        }, 5000);
+    }
+
+    function handleThemeToggle() {
+        const isDark = body.classList.toggle('dark-theme');
+        body.classList.toggle('light-theme', !isDark);
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+        // Atualiza o ícone do botão
+        const icon = themeToggle.querySelector('i');
+        icon.className = isDark ? 'bx bx-sun' : 'bx bx-moon';
+
+        // Atualiza os gráficos se eles já existirem
+        if (monthlyChart) updateChart(monthlyChart.data.datasets[0].data[0], monthlyChart.data.datasets[0].data[1]);
+        if (reportCategoryChart) generateReport();
+        if (reportBalanceChart) generateReport();
+    }
+
+
     // --- LÓGICA PRINCIPAL ---
     setupAuthListeners();
     auth.onAuthStateChanged(user => {
@@ -55,14 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Aplica o tema salvo ao carregar a página
+    if (localStorage.getItem('theme') === 'light') {
+        handleThemeToggle(); // Chama para setar o tema claro
+    }
+
     // --- SETUP DA TELA DE LOGIN ---
     function setupAuthListeners() {
         document.getElementById('login-google').onclick = async () => {
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 const result = await auth.signInWithPopup(provider);
-                const idToken = await result.user.getIdToken();
-                await loginWithServer(idToken);
             } catch (err) {
                 showAuthError(getFriendlyAuthError(err));
             }
@@ -106,8 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (authUIMode === 'login') {
                 const userCredential = await auth.signInWithEmailAndPassword(email, password);
-                const idToken = await userCredential.user.getIdToken();
-                await loginWithServer(idToken);
             } else {
                 const confirmPassword = document.getElementById('auth-confirm-password').value;
                 if (password !== confirmPassword) {
@@ -117,8 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return showAuthError('A senha deve ter no mínimo 6 caracteres.');
                 }
                 const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                const idToken = await userCredential.user.getIdToken();
-                await loginWithServer(idToken);
             }
         } catch (err) {
             showAuthError(getFriendlyAuthError(err));
@@ -133,6 +164,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function hideAuthError() {
         document.getElementById('auth-error').classList.add('hidden');
+    }
+
+    function getFriendlyAuthError(error) {
+        switch (error.code) {
+            case 'auth/user-not-found':
+                return 'Nenhum usuário encontrado com este e-mail.';
+            case 'auth/wrong-password':
+                return 'Senha incorreta. Tente novamente.';
+            case 'auth/email-already-in-use':
+                return 'Este e-mail já está em uso por outra conta.';
+            case 'auth/weak-password':
+                return 'A senha é muito fraca. Use pelo menos 6 caracteres.';
+            case 'auth/invalid-email':
+                return 'O formato do e-mail é inválido.';
+            case 'auth/network-request-failed':
+                return 'Erro de rede. Verifique sua conexão com a internet.';
+            default:
+                return 'Ocorreu um erro. Tente novamente mais tarde.';
+        }
     }
 
     // --- SETUP DO APP PÓS-LOGIN ---
@@ -171,6 +221,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('menu-toggle-btn').onclick = toggleSidebar;
         document.getElementById('sidebar-close-btn').onclick = toggleSidebar;
         document.getElementById('mobile-overlay').onclick = toggleSidebar;
+
+        themeToggle.onclick = handleThemeToggle;
 
         const firstName = user.displayName || user.email.split('@')[0];
         document.getElementById('user-greeting').textContent = `Olá, ${firstName}!`;
@@ -290,6 +342,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (pageInitializers[pageId]) {
                 pageInitializers[pageId]();
+            }
+
+            // Garante que a personalização do dashboard seja carregada sempre que a página for exibida.
+            if (pageId === 'dashboard') {
+                loadAndApplyUserSettings(user);
             }
 
             document.querySelectorAll('.group-btn').forEach(btn => btn.onclick = handleReportGrouping);
@@ -554,27 +611,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function listenToAllData(user) {
+    async function listenToAllData(user) { // Tornando a função principal assíncrona
         try {
+            // 1. Garante que categorias e contas sejam carregadas (e criadas, se necessário) primeiro.
+            // Essas são as dependências principais.
+            await listenForCategories(user);
+            await listenForAccounts(user);
+
+            // 2. Agora que temos contas e categorias, podemos carregar o resto em paralelo.
             await Promise.all([
-                listenForCategories(user),
                 listenForBudgets(user),
-                listenForAccounts(user),
                 listenForGoals(user),
                 listenForInvestments(user)
             ]);
 
+            // 3. Por último, carregamos as transações, que dependem de todo o resto para serem exibidas corretamente.
             unsubscribeFromTransactions = db.collection('transactions').where('userId', '==', user.uid).orderBy('date', 'desc')
                 .onSnapshot(snapshot => {
                     allTransactions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     applyFiltersAndRender();
                     updateDashboardMetrics();
                     populateFilters();
-                    if (isFirstDataLoad) {
-                        loadAndApplyUserSettings(user);
-                        hideLoader();
-                        isFirstDataLoad = false;
-                    }
+                    // Oculta o loader apenas após o primeiro carregamento das transações
+                    if (isFirstDataLoad) hideLoader();
+                    isFirstDataLoad = false;
                 }, error => {
                     console.error("Erro ao carregar transações do Firestore:", error);
                     showToast('Não foi possível carregar os lançamentos. Verifique o console.', 'error');
@@ -582,6 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Erro ao carregar dados iniciais:", error);
             showToast('Não foi possível carregar os dados iniciais. Tente recarregar a página.', 'error');
+            hideLoader(); // Esconde o loader mesmo se houver erro para não travar a tela.
         }
     }
 
@@ -845,7 +906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(defaultCats).forEach(type => {
             defaultCats[type].forEach(cat => {
                 const ref = db.collection('categories').doc();
-                batch.set(ref, { userId, name: cat.name, type, icon: cat.icon || '' });
+                batch.set(ref, { userId: userId, name: cat.name, type: type, icon: cat.icon || '', createdAt: new Date().toISOString() });
             });
         });
         await batch.commit();
@@ -1087,7 +1148,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 .orderBy('createdAt', 'asc')
                 .onSnapshot(async (snapshot) => {
                     if (snapshot.empty && user) {
+                        // Apenas para novos usuários, cria a conta e retorna.
+                        // O próprio listener será acionado novamente quando a conta for criada,
+                        // seguindo para o 'else' na próxima execução.
                         await createDefaultAccount(user.uid);
+                        return; // Impede a execução do resto da função nesta primeira passagem.
                     } else {
                         userAccounts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         renderAccountsPage();
@@ -1104,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function createDefaultAccount(userId) {
         const defaultAccount = {
-            userId,
+            userId: userId,
             name: 'Carteira',
             initialBalance: 0,
         };

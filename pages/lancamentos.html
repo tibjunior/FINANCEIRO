@@ -1,0 +1,48 @@
+<div class="page-actions">
+    <button id="add-income-btn" class="btn-primary"><i class='bx bx-plus'></i> Receita</button>
+    <button id="add-expense-btn" class="btn-primary"><i class='bx bx-plus'></i> Despesa</button>
+    <button id="add-transfer-btn" class="btn-secondary"><i class='bx bx-transfer'></i> Transferência</button>
+    <button id="select-transactions-btn" class="btn-secondary"><i class='bx bx-checkbox-checked'></i> Selecionar</button>
+</div>
+
+<div class="filter-controls">
+    <div class="filter-group">
+        <i class='bx bx-search'></i>
+        <input type="text" id="search-filter" placeholder="Pesquisar por descrição...">
+    </div>
+    <div class="filter-group">
+        <i class='bx bx-category'></i>
+        <select id="category-filter">
+            <option value="all">Todas as Categorias</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <i class='bx bx-purchase-tag'></i>
+        <select id="tag-filter">
+            <option value="all">Todas as Tags</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <i class='bx bx-transfer'></i>
+        <select id="type-filter">
+            <option value="all">Todos os Tipos</option>
+            <option value="income">Receita</option>
+            <option value="expense">Despesa</option>
+        </select>
+    </div>
+</div>
+
+<div class="full-transactions-list">
+    <h3>Todos os Lançamentos</h3>
+    <ul id="all-transactions-list">
+        <!-- Lançamentos serão renderizados aqui pelo JS -->
+    </ul>
+</div>
+
+<div id="bulk-action-bar" class="bulk-action-bar hidden">
+    <span id="selection-count">0 itens selecionados</span>
+    <div class="bulk-actions">
+        <button id="cancel-selection-btn" class="btn-secondary">Cancelar</button>
+        <button id="bulk-delete-btn" class="btn-danger"><i class='bx bxs-trash'></i> Excluir</button>
+    </div>
+</div>
