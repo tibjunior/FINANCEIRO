@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FINANCE JR - Controle Financeiro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%230a192f'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' font-family='Poppins, sans-serif' fill='%2364ffda'>FJ</text></svg>">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div class="background-shapes"></div>
+
+    <div id="login-container">
+        <div id="login-screen" class="glass-card">
+            <div class="card-content">
+                <h1 id="form-title">FINANCE JR</h1>
+                <p id="form-subtitle">Seu ecossistema financeiro.</p>
+                <br>
+                <form id="auth-form">
+                    <div id="auth-error" class="auth-error hidden"></div>
+                    <div class="input-group">
+                        <i class='bx bx-envelope'></i><input type="email" id="auth-email" placeholder="Seu e-mail" required>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-lock-alt'></i><input type="password" id="auth-password" placeholder="Sua senha" required>
+                    </div>
+                    <div class="input-group hidden" id="confirm-password-group">
+                        <label for="auth-confirm-password" class="visually-hidden">Confirme a senha</label>
+                        <i class='bx bx-lock-alt'></i><input type="password" id="auth-confirm-password" placeholder="Confirme a senha">
+                    </div>
+                    <button type="submit" id="auth-submit-btn">Entrar</button>
+                </form>
+                <div class="separator"><span>OU</span></div>
+                <button id="login-google" class="social-btn" aria-label="Entrar com o Google">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24" aria-hidden="true" focusable="false"><path fill="#fbc02d" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12	s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20	s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#e53935" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039	l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4caf50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36	c-5.222,0-9.618-3.226-11.283-7.563l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1565c0" d="M43.611,20.083L43.595,20L42,20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574	l6.19,5.238C39.978,36.218,44,30.608,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
+                </button>
+                <p class="sub-text" id="signup-text">Não tem uma conta? <a href="#" id="signup-link">Crie agora</a></p>
+                <p class="sub-text hidden" id="login-text">Já tem uma conta? <a href="#" id="login-link">Entre</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>FINANCE JR</h2>
+                <button id="sidebar-close-btn" class="icon-btn mobile-only" aria-label="Fechar menu">
+                    <i class='bx bx-x'></i>
+                </button>
+            </div>
+            <ul class="nav-links">
+                <li class="active">
+                    <a href="#" class="nav-link" data-page="dashboard">
+                        <i class='bx bxs-dashboard'></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="lancamentos">
+                        <i class='bx bx-transfer-alt'></i>
+                        <span>Lançamentos</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="relatorios">
+                        <i class='bx bx-bar-chart-alt-2'></i>
+                        <span>Relatórios</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="orcamentos">
+                        <i class='bx bx-target-lock'></i>
+                        <span>Orçamentos</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="categorias">
+                        <i class='bx bx-purchase-tag-alt'></i>
+                        <span>Categorias</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="contas">
+                        <i class='bx bxs-bank'></i>
+                        <span>Contas</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="metas">
+                        <i class='bx bx-flag'></i>
+                        <span>Metas</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="nav-link" data-page="investimentos">
+                        <i class='bx bx-line-chart'></i>
+                        <span>Investimentos</span>
+                    </a>
+                </li>
+            </ul>
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="icon-btn" aria-label="Mudar tema">
+                    <i class='bx bx-moon'></i>
+                </button>
+                <button id="logout-button" class="icon-btn" aria-label="Sair">
+                    <i class='bx bx-log-out'></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <button id="menu-toggle-btn" class="icon-btn mobile-only" aria-label="Abrir menu">
+                    <i class='bx bx-menu'></i>
+                </button>
+                <h1 id="page-title">Dashboard</h1>
+                <div class="user-info">
+                    <span id="user-greeting">Olá!</span>
+                    <img src="https://i.pravatar.cc/40" alt="Avatar do usuário" class="avatar" id="user-avatar">
+                </div>
+            </header>
+
+            <!-- O conteúdo da página será carregado aqui pelo JavaScript -->
+            <!-- A função loadPageContent em app.js irá preencher esta div -->
+            <div id="main-page-content"></div>
+        </main>
+
+        <div id="mobile-overlay" class="mobile-overlay hidden"></div>
+
+        <div id="toast-container"></div>
+
+        <!-- Modal de Transação -->
+        <div id="transaction-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="modal-title">Adicionar Transação</h2>
+                <form id="transaction-form">
+                    <input type="hidden" id="transaction-type">
+                    <input type="hidden" id="transaction-id">
+                    <div class="input-group"><i class='bx bx-comment-detail'></i><input type="text" id="transaction-description" placeholder="Descrição" required></div>
+                    <div class="input-group">
+                        <i class='bx bxs-bank'></i>
+                        <select id="transaction-account" required></select>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-category'></i>
+                        <select id="transaction-category" required></select>
+                    </div>
+                    <div class="input-group"><i class='bx bx-dollar'></i><input type="number" id="transaction-amount" placeholder="Valor" step="0.01" min="0.01" required></div>
+                    <div class="input-group"><i class='bx bx-calendar'></i><input type="date" id="transaction-date" required></div>
+                    <div class="input-group"><i class='bx bx-purchase-tag'></i><input type="text" id="transaction-tags" placeholder="Tags (separadas por vírgula)"></div>
+
+                    <div class="form-toggle">
+                        <button type="button" id="split-transaction-btn" class="btn-link"><i class='bx bx-git-commit'></i> Dividir Lançamento</button>
+                    </div>
+
+                    <div id="split-container" class="hidden">
+                        <div id="split-list"></div>
+                        <button type="button" id="add-split-btn" class="btn-link"><i class='bx bx-plus'></i> Adicionar Categoria</button>
+                        <div id="split-summary" class="split-summary"></div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-transaction-btn">Cancelar</button>
+                        <button type="submit" id="save-transaction-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Categoria -->
+        <div id="category-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="category-modal-title">Nova Categoria</h2>
+                <form id="category-form">
+                    <input type="hidden" id="category-id">
+                    <input type="hidden" id="category-icon-input">
+                    <div class="input-group">
+                        <i class='bx bx-label'></i>
+                        <input type="text" id="category-name" placeholder="Nome da Categoria" required>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-transfer'></i>
+                        <select id="category-type" required>
+                            <option value="expense">Despesa</option>
+                            <option value="income">Receita</option>
+                        </select>
+                    </div>
+                    <div class="icon-picker-container">
+                        <label>Ícone (opcional)</label>
+                        <div id="icon-picker" class="icon-picker">
+                            <!-- Ícones serão renderizados aqui pelo JS -->
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-category-btn">Cancelar</button>
+                        <button type="submit" id="save-category-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Orçamento -->
+        <div id="budget-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="budget-modal-title">Novo Orçamento</h2>
+                <form id="budget-form">
+                    <input type="hidden" id="budget-id">
+                    <div class="input-group">
+                        <i class='bx bx-category'></i>
+                        <select id="budget-category" required></select>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-dollar'></i>
+                        <input type="number" id="budget-amount" placeholder="Valor do Orçamento" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-budget-btn">Cancelar</button>
+                        <button type="submit" id="save-budget-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Conta -->
+        <div id="account-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="account-modal-title">Nova Conta</h2>
+                <form id="account-form">
+                    <input type="hidden" id="account-id">
+                    <div class="input-group">
+                        <i class='bx bx-credit-card-front'></i>
+                        <select id="account-type">
+                            <option value="checking">Conta Corrente / Carteira</option>
+                            <option value="credit-card">Cartão de Crédito</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bxs-bank'></i>
+                        <input type="text" id="account-name" placeholder="Nome da Conta (ex: Carteira)" required>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-dollar'></i>
+                        <input type="number" id="account-initial-balance" placeholder="Saldo Inicial" step="0.01" value="0" required>
+                    </div>
+                    <div id="credit-card-fields" class="hidden">
+                        <div class="input-group">
+                            <i class='bx bx-calendar-check'></i>
+                            <input type="number" id="account-closing-day" placeholder="Dia do Fechamento da Fatura (1-31)" min="1" max="31">
+                        </div>
+                        <div class="input-group">
+                            <i class='bx bx-calendar-event'></i>
+                            <input type="number" id="account-due-day" placeholder="Dia do Vencimento da Fatura (1-31)" min="1" max="31">
+                        </div>
+                        <p class="sub-text-card" style="font-size: 12px; text-align: left; margin-bottom: 10px;">O saldo inicial representa uma fatura já existente que você precisa pagar.</p>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-account-btn">Cancelar</button>
+                        <button type="submit" id="save-account-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Meta -->
+        <div id="goal-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="goal-modal-title">Nova Meta</h2>
+                <form id="goal-form">
+                    <input type="hidden" id="goal-id">
+                    <div class="input-group">
+                        <i class='bx bx-flag'></i>
+                        <input type="text" id="goal-name" placeholder="Nome da Meta (ex: Viagem)" required>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-dollar'></i>
+                        <input type="number" id="goal-target-amount" placeholder="Valor Alvo" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-goal-btn">Cancelar</button>
+                        <button type="submit" id="save-goal-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Contribuição para Meta -->
+        <div id="contribution-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="contribution-modal-title">Contribuir para Meta</h2>
+                <form id="contribution-form">
+                    <input type="hidden" id="contribution-goal-id">
+                    <div class="input-group">
+                        <i class='bx bxs-bank'></i>
+                        <select id="contribution-account" required></select>
+                    </div>
+                    <div class="input-group"><i class='bx bx-dollar'></i><input type="number" id="contribution-amount" placeholder="Valor da Contribuição" step="0.01" min="0.01" required></div>
+                    <p class="sub-text-card" style="font-size: 12px; text-align: left;">Uma despesa será criada na categoria "Metas" para registrar esta contribuição.</p>
+                    <div class="modal-actions"><button type="button" id="cancel-contribution-btn">Cancelar</button><button type="submit">Contribuir</button></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Transferência -->
+        <div id="transfer-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="transfer-modal-title">Nova Transferência</h2>
+                <form id="transfer-form">
+                    <div class="input-group">
+                        <i class='bx bx-log-out-circle'></i>
+                        <select id="transfer-from-account" required></select>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-log-in-circle'></i>
+                        <select id="transfer-to-account" required></select>
+                    </div>
+                    <div class="input-group"><i class='bx bx-dollar'></i><input type="number" id="transfer-amount" placeholder="Valor" step="0.01" min="0.01" required></div>
+                    <div class="input-group"><i class='bx bx-calendar'></i><input type="date" id="transfer-date" required></div>
+                    <div class="input-group"><i class='bx bx-comment-detail'></i><input type="text" id="transfer-description" placeholder="Descrição (opcional)"></div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-transfer-btn">Cancelar</button>
+                        <button type="submit" id="save-transfer-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal de Investimento -->
+        <div id="investment-modal" class="modal-overlay hidden">
+            <div class="modal-content grid-item">
+                <h2 id="investment-modal-title">Novo Investimento</h2>
+                <form id="investment-form">
+                    <input type="hidden" id="investment-id">
+                    <div class="input-group">
+                        <i class='bx bx-label'></i>
+                        <input type="text" id="investment-name" placeholder="Nome do Ativo (ex: Tesouro Selic 2029)" required>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-briefcase-alt'></i>
+                        <input type="text" id="investment-type" placeholder="Tipo (ex: Renda Fixa, Ações)" required>
+                    </div>
+                    <div class="input-group">
+                        <i class='bx bx-dollar'></i>
+                        <input type="number" id="investment-amount" placeholder="Valor Atualizado" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" id="cancel-investment-btn">Cancelar</button>
+                        <button type="submit" id="save-investment-btn">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (v8 - compatível com seu app.js) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- Bibliotecas externas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <!-- Seus scripts (devem vir DEPOIS do SDK do Firebase) -->
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

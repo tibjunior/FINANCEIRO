@@ -1,0 +1,48 @@
+<!-- pages/relatorios.html -->
+<div class="content-card report-filters">
+    <div class="input-group" style="margin-bottom: 0;">
+        <label for="report-start-date">De:</label>
+        <input type="date" id="report-start-date">
+    </div>
+    <div class="input-group" style="margin-bottom: 0;">
+        <label for="report-end-date">Até:</label>
+        <input type="date" id="report-end-date">
+    </div>
+    <div class="input-group" style="margin-bottom: 0;">
+        <label for="report-type-filter">Tipo:</label>
+        <select id="report-type-filter">
+            <option value="all">Todos</option>
+            <option value="income">Receitas</option>
+            <option value="expense">Despesas</option>
+        </select>
+    </div>
+    <div class="input-group" style="margin-bottom: 0;">
+        <label for="report-category-filter">Categoria:</label>
+        <select id="report-category-filter"></select>
+    </div>
+    <div class="report-grouping">
+        <label>Agrupar por:</label>
+        <button class="group-btn active" data-group="day">Dia</button>
+        <button class="group-btn" data-group="week">Semana</button>
+        <button class="group-btn" data-group="month">Mês</button>
+    </div>
+    <button id="export-csv-btn" class="btn-secondary" style="width: auto; padding: 10px 15px;"><i class='bx bx-export'></i> Exportar CSV</button>
+</div>
+
+<div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; margin-top: 20px;">
+    <div class="grid-item"><h3>Receitas: <span id="report-total-income">R$ 0,00</span></h3></div>
+    <div class="grid-item"><h3>Despesas: <span id="report-total-expense">R$ 0,00</span></h3></div>
+    <div class="grid-item" style="grid-column: 1 / -1;"><h3>Saldo Líquido: <span id="report-net-balance">R$ 0,00</span></h3></div>
+
+    <div class="grid-item chart-card" style="grid-column: 1 / 2; grid-row: 3 / 5;">
+        <h3>Evolução do Saldo</h3>
+        <canvas id="balance-evolution-chart"></canvas>
+        <p id="balance-evolution-chart-empty" class="empty-state hidden">Dados insuficientes para gerar o gráfico.</p>
+    </div>
+    <div class="grid-item chart-card" style="grid-column: 2 / 3; grid-row: 3 / 5;">
+        <h3>Despesas por Categoria</h3>
+        <canvas id="report-chart"></canvas>
+        <p id="report-chart-empty" class="empty-state hidden">Nenhuma despesa no período.</p>
+    </div>
+    <div class="grid-item" style="grid-column: 1 / -1;"><ul id="report-transactions-list"></ul></div>
+</div>
