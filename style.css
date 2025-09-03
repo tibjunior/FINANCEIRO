@@ -71,50 +71,6 @@ body.dark-theme { background-color: var(--bg-dark); color: var(--text-dark); }
 }
 body.light-theme #loading-overlay { background-color: var(--bg-light); }
 
-/* --- Mobile Responsiveness --- */
-@media (max-width: 992px) {
-    .sidebar { 
-        position: fixed; /* Garante que a sidebar fique por cima do conteúdo */
-        transform: translateX(-100%); 
-        transition: transform 0.3s ease-in-out;
-        z-index: 1100; 
-        box-shadow: 5px 0 15px rgba(0,0,0,0.2); 
-    }
-    .main-content { margin-left: 0; width: 100%; padding: 20px; }
-    .mobile-only { display: flex; }
-    .desktop-only { display: none; }
-
-    /* Mostra a sidebar e o overlay quando o menu é aberto */
-    body.sidebar-open .sidebar { transform: translateX(0); }
-    body.sidebar-open .mobile-overlay {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    /* Ajustes de layout e fontes para telas menores */
-    .main-header { margin-bottom: 20px; }
-    .main-header h1 { margin-left: 15px; font-size: clamp(1.25rem, 5vw, 1.5rem); }
-    .dashboard-grid { grid-template-columns: 1fr; } /* Coluna única no mobile */
-    .balance-card, .summary-card, .chart-container, .accounts-container, .budgets-container-dashboard, .goals-container-dashboard, .transactions-list-dashboard {
-        grid-column: auto; /* Reseta o posicionamento do grid */
-        grid-row: auto;
-    }
-    .summary-card h2 { font-size: 1.8rem; }
-    .filter-controls { grid-template-columns: 1fr; } /* Filtros em coluna única */
-    .category-management { grid-template-columns: 1fr; } /* Categorias em coluna única */
-    .modal-content { max-width: 90%; padding: 20px; }
-    .bulk-action-bar { left: 0; width: 100%; }
-}
-
-.mobile-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(0,0,0,0.5); z-index: 1050; opacity: 0;
-    pointer-events: none; transition: opacity 0.3s ease-in-out;
-}
-.desktop-only {
-    display: flex;
-}
-
 .spinner {
     width: 50px;
     height: 50px;
@@ -827,3 +783,48 @@ body.light-theme .bulk-action-bar #selection-count { color: var(--heading-light)
 .bulk-actions { display: flex; gap: 15px; }
 .bulk-actions button { width: auto; padding: 10px 20px; }
 .btn-danger { background-color: var(--expense-dark); color: #fff; }
+
+/* --- Mobile Responsiveness (MOVIDO PARA O FINAL PARA GARANTIR PRIORIDADE) --- */
+.mobile-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.5); z-index: 1050; opacity: 0;
+    pointer-events: none; transition: opacity 0.3s ease-in-out;
+}
+
+.desktop-only {
+    display: flex;
+}
+
+@media (max-width: 992px) {
+    .sidebar { 
+        position: fixed; /* Garante que a sidebar fique por cima do conteúdo */
+        transform: translateX(-100%); 
+        transition: transform 0.3s ease-in-out;
+        z-index: 1100; 
+        box-shadow: 5px 0 15px rgba(0,0,0,0.2); 
+    }
+    .main-content { margin-left: 0; width: 100%; padding: 20px; }
+    .mobile-only { display: flex; }
+    .desktop-only { display: none; }
+
+    /* Mostra a sidebar e o overlay quando o menu é aberto */
+    body.sidebar-open .sidebar { transform: translateX(0); }
+    body.sidebar-open .mobile-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    /* Ajustes de layout e fontes para telas menores */
+    .main-header { margin-bottom: 20px; }
+    .main-header h1 { margin-left: 15px; font-size: clamp(1.25rem, 5vw, 1.5rem); }
+    .dashboard-grid { grid-template-columns: 1fr; } /* Coluna única no mobile */
+    .balance-card, .summary-card, .chart-container, .accounts-container, .budgets-container-dashboard, .goals-container-dashboard, .transactions-list-dashboard {
+        grid-column: auto; /* Reseta o posicionamento do grid */
+        grid-row: auto;
+    }
+    .summary-card h2 { font-size: 1.8rem; }
+    .filter-controls { grid-template-columns: 1fr; } /* Filtros em coluna única */
+    .category-management { grid-template-columns: 1fr; } /* Categorias em coluna única */
+    .modal-content { max-width: 90%; padding: 20px; }
+    .bulk-action-bar { left: 0; width: 100%; }
+}
