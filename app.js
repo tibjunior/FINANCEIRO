@@ -324,7 +324,6 @@ document.addEventListener('DOMContentLoaded', () => {
             actionHandlers[targetId]();
             return;
         }
-
         // Fechar modais
         const modalOverlay = target.closest('.modal-overlay');
         if (modalOverlay && (target.classList.contains('modal-overlay') || target.id.startsWith('cancel-'))) {
