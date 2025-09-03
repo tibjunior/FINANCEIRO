@@ -11,7 +11,7 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%230a192f'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='50' font-family='Poppins, sans-serif' fill='%2364ffda'>FJ</text></svg>">
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dark-theme">
     <div id="loading-overlay">
         <div class="spinner"></div>
     </div>
@@ -33,14 +33,14 @@
                         <i class='bx bx-lock-alt'></i><input type="password" id="auth-password" placeholder="Sua senha" required>
                     </div>
                     <div class="input-group hidden" id="confirm-password-group">
-                        <label for="auth-confirm-password" class="visually-hidden">Confirme a senha</label>
+                        <label for="auth-confirm-password" class="hidden">Confirme a senha</label>
                         <i class='bx bx-lock-alt'></i><input type="password" id="auth-confirm-password" placeholder="Confirme a senha">
                     </div>
                     <button type="submit" id="auth-submit-btn">Entrar</button>
                 </form>
                 <div class="separator"><span>OU</span></div>
                 <button id="login-google" class="social-btn" aria-label="Entrar com o Google">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24" aria-hidden="true" focusable="false"><path fill="#fbc02d" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12	s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20	s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#e53935" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039	l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4caf50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36	c-5.222,0-9.618-3.226-11.283-7.563l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1565c0" d="M43.611,20.083L43.595,20L42,20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574	l6.19,5.238C39.978,36.218,44,30.608,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="24" height="24" aria-hidden="true"><path fill="#fbc02d" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12	s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20	s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#e53935" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039	l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4caf50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36	c-5.222,0-9.618-3.226-11.283-7.563l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1565c0" d="M43.611,20.083L43.595,20L42,20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.574	l6.19,5.238C39.978,36.218,44,30.608,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
                 </button>
                 <p class="sub-text" id="signup-text">Não tem uma conta? <a href="#" id="signup-link">Crie agora</a></p>
                 <p class="sub-text hidden" id="login-text">Já tem uma conta? <a href="#" id="login-link">Entre</a></p>

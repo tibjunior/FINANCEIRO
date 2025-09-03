@@ -88,8 +88,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Aplica o tema salvo ao carregar a página
+    // O padrão agora é 'dark', então só mudamos se 'light' estiver salvo.
     if (localStorage.getItem('theme') === 'light') {
-        handleThemeToggle(); // Chama para setar o tema claro
+        body.classList.remove('dark-theme');
+        body.classList.add('light-theme');
+        const icon = themeToggle.querySelector('i');
+        icon.className = 'bx bx-moon';
     }
 
     // --- SETUP DA TELA DE LOGIN ---
