@@ -303,7 +303,7 @@ body.light-theme #user-greeting { color: var(--text-light); }
 /* --- Dashboard Grid --- */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Layout padrão para desktop */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Layout flexível */
     grid-gap: 20px;
 }
 
