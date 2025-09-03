@@ -81,6 +81,12 @@ body.light-theme #loading-overlay { background-color: var(--bg-light); }
     body.sidebar-open .sidebar {
         transform: translateX(0);
     }
+    .main-header h1 {
+        font-size: 22px;
+    }
+    .summary-card h2 {
+        font-size: 1.5rem;
+    }
     body.sidebar-open .mobile-overlay {
         opacity: 1;
         pointer-events: auto;

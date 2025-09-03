@@ -321,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (actionHandlers[targetId]) {
-            actionHandlerstargetId;
+            actionHandlers[targetId]();
             return;
         }
 
