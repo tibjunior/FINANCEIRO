@@ -52,7 +52,14 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>FINANCE JR</h2>
+                <div class="sidebar-logo-collapsed">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 18L4 10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 18V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M20 18V14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="sidebar-title">FINANCE JR</h2>
                 <button id="sidebar-close-btn" class="icon-btn mobile-only" aria-label="Fechar menu">
                     <i class='bx bx-x'></i>
                 </button>
@@ -108,6 +115,9 @@
                 </li>
             </ul>
             <div class="sidebar-footer">
+                <button id="sidebar-toggle-btn" class="icon-btn desktop-only" aria-label="Recolher menu">
+                    <i class='bx bx-chevrons-left'></i>
+                </button>
                 <button id="theme-toggle" class="icon-btn" aria-label="Mudar tema">
                     <i class='bx bx-moon'></i>
                 </button>

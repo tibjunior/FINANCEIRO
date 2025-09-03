@@ -3,6 +3,7 @@
 :root {
     --font-family: 'Poppins', sans-serif;
     --sidebar-width: 260px;
+    --sidebar-width-collapsed: 90px;
 
     /* Light Theme */
     --bg-light: #f0f2f5;
@@ -72,37 +73,23 @@ body.light-theme #loading-overlay { background-color: var(--bg-light); }
 
 /* --- Mobile Responsiveness --- */
 @media (max-width: 992px) {
-    .sidebar {
-        position: fixed;
-        transform: translateX(-100%);
-        transition: transform 0.3s ease-in-out;
-        z-index: 1100;
-        box-shadow: 5px 0 15px rgba(0,0,0,0.2);
-    }
-
-    .sidebar-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .main-content {
-        margin-left: 0;
-        width: 100%;
-        padding: 20px;
-    }
-
-    .mobile-only {
-        display: flex;
-    }
-
-    .main-header h1 {
-        margin-left: 15px;
-    }
-
+    .sidebar { transform: translateX(-100%); z-index: 1100; box-shadow: 5px 0 15px rgba(0,0,0,0.2); }
+    .main-content { margin-left: 0; width: 100%; padding: 20px; }
+    .mobile-only { display: flex; }
+    .desktop-only { display: none; }
+    .main-header h1 { margin-left: 15px; }
     body.sidebar-open .sidebar {
         transform: translateX(0);
     }
+    body.sidebar-open .mobile-overlay {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .bulk-action-bar {
+        left: 0;
+        width: 100%;
+    }
+}
 
     .mobile-overlay {
         position: fixed;
@@ -111,17 +98,16 @@ body.light-theme #loading-overlay { background-color: var(--bg-light); }
         width: 100%;
         height: 100%;
         background-color: rgba(0,0,0,0.5);
-        z-index: 1050;
-        transition: opacity 0.3s ease;
-    }
-    body.sidebar-open .mobile-overlay {
-        display: block;
-    }
-
-    .bulk-action-bar {
-        left: 0;
+        z-index: 1050; /* Abaixo da sidebar, acima do conteúdo */
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease-in-out;
     }
 }
+.desktop-only {
+    display: flex;
+}
+
 .spinner {
     width: 50px;
     height: 50px;
@@ -199,12 +185,58 @@ body.light-theme #app-container { background-color: var(--bg-light); }
     top: 0; left: 0;
     background-color: var(--sidebar-bg-dark);
     padding: 20px;
-    display: flex; flex-direction: column;
+    display: flex;
+    flex-direction: column;
     border-right: 1px solid var(--border-dark);
+    transition: width 0.3s ease;
 }
 body.light-theme .sidebar { background-color: var(--sidebar-bg-light); border-right-color: var(--border-light); }
 
-.sidebar-header h2 { color: var(--heading-dark); text-align: center; letter-spacing: 2px; }
+body.sidebar-collapsed .sidebar {
+    width: var(--sidebar-width-collapsed);
+}
+
+body.sidebar-collapsed .sidebar-title,
+body.sidebar-collapsed .nav-links span {
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    overflow: hidden;
+}
+
+/* Cabeçalho da Sidebar */
+.sidebar-header {
+    display: flex;
+    justify-content: center; /* Centraliza o conteúdo por padrão */
+    align-items: center;
+    position: relative; /* Para posicionar o título e o logo */
+    height: 50px; /* Define uma altura fixa para evitar "pulos" */
+}
+
+/* Mostra o logo 'FJ' apenas quando a sidebar está recolhida */
+.sidebar-logo-collapsed {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--accent-dark);
+    opacity: 0; /* Escondido por padrão */
+    transform: scale(0.8);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+body.light-theme .sidebar-logo-collapsed { color: var(--accent-light); }
+
+body.sidebar-collapsed .sidebar-logo-collapsed {
+    opacity: 1; /* Mostra quando recolhido */
+    transform: scale(1);
+}
+
+.sidebar-header .sidebar-title {
+    color: var(--heading-dark);
+    text-align: center;
+    letter-spacing: 2px;
+    transition: opacity 0.3s ease;
+}
 body.light-theme .sidebar-header h2 { color: var(--heading-light); }
 
 .nav-links { list-style: none; margin-top: 50px; flex-grow: 1; }
@@ -213,12 +245,20 @@ body.light-theme .nav-links a { color: var(--text-light); }
 .nav-links a:hover, .nav-links li.active a { background-color: var(--bg-dark); color: var(--accent-dark); }
 body.light-theme .nav-links a:hover, body.light-theme .nav-links li.active a { background-color: var(--bg-light); color: var(--accent-light); }
 .nav-links i { font-size: 22px; }
-
-.sidebar-footer { display: flex; justify-content: space-around; padding-top: 20px; border-top: 1px solid var(--border-dark); }
-body.light-theme .sidebar-footer { border-top-color: var(--border-light); }
 .icon-btn { background: transparent; border: none; color: var(--text-dark); font-size: 24px; cursor: pointer; }
 .mobile-only { display: none; }
 body.light-theme .icon-btn { color: var(--text-light); }
+
+/* Rodapé da Sidebar */
+.sidebar-footer {
+    display: flex; align-items: center; justify-content: space-between; gap: 20px;
+    padding-top: 20px; border-top: 1px solid var(--border-dark);
+}
+
+body.sidebar-collapsed .sidebar-footer {
+    flex-direction: column; /* Empilha os ícones na vertical quando recolhido */
+    justify-content: center; /* Centraliza tudo quando estiver na vertical */
+}
 
 /* --- Main Content --- */
 .main-content {
@@ -227,6 +267,12 @@ body.light-theme .icon-btn { color: var(--text-light); }
     padding: 30px;
     height: 100vh;
     overflow-y: auto;
+    transition: margin-left 0.3s ease, width 0.3s ease;
+}
+
+body.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-width-collapsed);
+    width: calc(100% - var(--sidebar-width-collapsed));
 }
 
 .page-content.hidden { display: none; }

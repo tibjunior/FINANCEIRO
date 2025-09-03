@@ -76,6 +76,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (reportBalanceChart) generateReport();
     }
 
+    function handleSidebarToggle() {
+        const isCollapsed = body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebarCollapsed', isCollapsed ? 'true' : 'false');
+
+        const icon = document.querySelector('#sidebar-toggle-btn i');
+        if (icon) {
+            icon.className = isCollapsed ? 'bx bx-chevrons-right' : 'bx bx-chevrons-left';
+        }
+
+        // Redimensiona os gráficos para se ajustarem ao novo layout
+        setTimeout(() => {
+            if (monthlyChart) monthlyChart.resize();
+            if (reportCategoryChart) reportCategoryChart.resize();
+            if (reportBalanceChart) reportBalanceChart.resize();
+        }, 300); // Aguarda a transição do CSS
+    }
 
     // --- LÓGICA PRINCIPAL ---
     setupAuthListeners();
@@ -87,13 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Aplica o tema salvo ao carregar a página
-    // O padrão agora é 'dark', então só mudamos se 'light' estiver salvo.
+    // Aplica o tema salvo ao carregar a página. O padrão é 'dark'.
     if (localStorage.getItem('theme') === 'light') {
         body.classList.remove('dark-theme');
         body.classList.add('light-theme');
-        const icon = themeToggle.querySelector('i');
-        icon.className = 'bx bx-moon';
+        themeToggle.querySelector('i').className = 'bx bx-moon';
+    }
+
+    // Aplica o estado do sidebar salvo ou o padrão (recolhido)
+    if (localStorage.getItem('sidebarCollapsed') === 'false') {
+        body.classList.remove('sidebar-collapsed');
+        document.querySelector('#sidebar-toggle-btn i').className = 'bx bx-chevrons-left';
+    } else {
+        body.classList.add('sidebar-collapsed');
+        document.querySelector('#sidebar-toggle-btn i').className = 'bx bx-chevrons-right';
     }
 
     // --- SETUP DA TELA DE LOGIN ---
@@ -226,67 +249,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('sidebar-close-btn').onclick = toggleSidebar;
         document.getElementById('mobile-overlay').onclick = toggleSidebar;
 
+        // Delegação de eventos para o corpo do app
+        body.addEventListener('click', handleAppClick);
+
+        // Listeners que não podem ser delegados facilmente
         themeToggle.onclick = handleThemeToggle;
+        document.getElementById('sidebar-toggle-btn').onclick = handleSidebarToggle;
 
         const firstName = user.displayName || user.email.split('@')[0];
         document.getElementById('user-greeting').textContent = `Olá, ${firstName}!`;
         if (user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
 
-        document.getElementById('app-container').addEventListener('click', (e) => {
-            const target = e.target;
-            const targetId = target.id;
-
-            const navLink = target.closest('.nav-link');
-            if (navLink) {
-                e.preventDefault();
-                showPage(navLink.dataset.page);
-                if (window.innerWidth <= 992) body.classList.remove('sidebar-open');
-                return;
-            }
-
-            const actionHandlers = {
-                'add-income-btn': () => openModal('income'),
-                'add-expense-btn': () => openModal('expense'),
-                'add-transfer-btn': () => openTransferModal(),
-                'add-category-btn': () => openCategoryModal(),
-                'add-budget-btn': () => openBudgetModal(),
-                'add-investment-btn': () => openInvestmentModal(),
-                'add-account-btn': () => openAccountModal(),
-                'add-goal-btn': () => openGoalModal(),
-                'select-transactions-btn': toggleSelectionMode,
-                'cancel-selection-btn': toggleSelectionMode,
-                'bulk-delete-btn': handleBulkDelete,
-                'export-csv-btn': exportReportToCSV,
-                'split-transaction-btn': toggleSplitMode,
-                'add-split-btn': () => addSplitRow(),
-            };
-
-            if (actionHandlers[targetId]) {
-                actionHandlers[targetId]();
-                return;
-            }
-
-            const modalCancelMap = {
-                'cancel-transaction-btn': 'transaction-modal', 'transaction-modal': 'transaction-modal',
-                'cancel-transfer-btn': 'transfer-modal', 'transfer-modal': 'transfer-modal',
-                'cancel-category-btn': 'category-modal', 'category-modal': 'category-modal',
-                'cancel-budget-btn': 'budget-modal', 'budget-modal': 'budget-modal',
-                'cancel-investment-btn': 'investment-modal', 'investment-modal': 'investment-modal',
-                'cancel-account-btn': 'account-modal', 'account-modal': 'account-modal',
-                'cancel-goal-btn': 'goal-modal', 'goal-modal': 'goal-modal',
-                'cancel-contribution-btn': 'contribution-modal', 'contribution-modal': 'contribution-modal',
-            };
-
-            if (modalCancelMap[targetId]) {
-                if (target.classList.contains('modal-overlay') && target.id === modalCancelMap[targetId]) {
-                    document.getElementById(modalCancelMap[targetId]).classList.add('hidden');
-                } else if (target.id.startsWith('cancel-')) {
-                    document.getElementById(modalCancelMap[targetId]).classList.add('hidden');
-                }
-                return;
-            }
-        });
-
+        // Listeners de formulário
         document.getElementById('transaction-form').onsubmit = (e) => { e.preventDefault(); saveTransaction(user.uid); };
         document.getElementById('transfer-form').onsubmit = (e) => { e.preventDefault(); saveTransfer(user.uid); };
         document.getElementById('category-form').onsubmit = (e) => { e.preventDefault(); saveCategory(user.uid); };
@@ -296,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('goal-form').onsubmit = (e) => { e.preventDefault(); saveGoal(user.uid); };
         document.getElementById('contribution-form').onsubmit = (e) => { e.preventDefault(); saveContribution(user.uid); };
 
+        // Listeners de input/change (podem ser delegados também)
         document.getElementById('main-page-content').addEventListener('input', (e) => {
             if (e.target.id === 'search-filter') applyFiltersAndRender();
             if (e.target.id === 'transaction-amount') updateSplitSummary();
@@ -314,13 +289,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function handleAppClick(e) {
+        const target = e.target;
+        const targetId = target.id;
+
+        // Navegação
+        const navLink = target.closest('.nav-link');
+        if (navLink) {
+            e.preventDefault();
+            showPage(navLink.dataset.page);
+            if (window.innerWidth <= 992) body.classList.remove('sidebar-open');
+            return;
+        }
+
+        // Ações principais
+        const actionHandlers = {
+            'add-income-btn': () => openModal('income'),
+            'add-expense-btn': () => openModal('expense'),
+            'add-transfer-btn': openTransferModal,
+            'add-category-btn': openCategoryModal,
+            'add-budget-btn': openBudgetModal,
+            'add-investment-btn': openInvestmentModal,
+            'add-account-btn': openAccountModal,
+            'add-goal-btn': openGoalModal,
+            'select-transactions-btn': toggleSelectionMode,
+            'cancel-selection-btn': toggleSelectionMode,
+            'bulk-delete-btn': handleBulkDelete,
+            'export-csv-btn': exportReportToCSV,
+            'split-transaction-btn': toggleSplitMode,
+            'add-split-btn': () => addSplitRow(),
+        };
+
+        if (actionHandlers[targetId]) {
+            actionHandlerstargetId;
+            return;
+        }
+
+        // Fechar modais
+        const modalOverlay = target.closest('.modal-overlay');
+        if (modalOverlay && (target.classList.contains('modal-overlay') || target.id.startsWith('cancel-'))) {
+            modalOverlay.classList.add('hidden');
+            return;
+        }
+    }
+
     async function showPage(pageId) {
         document.querySelectorAll('.nav-link').forEach(link => link.parentElement.classList.remove('active'));
         const activeLink = document.querySelector(`.nav-link[data-page="${pageId}"]`);
         activeLink.parentElement.classList.add('active');
         document.getElementById('page-title').textContent = activeLink.querySelector('span').textContent;
- 
-        await loadPageContent(pageId);
+
+        // Otimização: Mostra o loader imediatamente para feedback visual
+        const contentContainer = document.getElementById('main-page-content');
+        contentContainer.innerHTML = `<div class="page-loader"><div class="spinner"></div></div>`;
+
+        loadPageContent(pageId); // Carrega o conteúdo de forma assíncrona
     }
 
     async function loadPageContent(pageId) {
