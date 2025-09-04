@@ -17,8 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let userAccounts = [];
     let userGoals = [];
     let userInvestments = [];
-    let userSettings = {};
-    let isDraggableInitialized = false;
+    let dashboardSortableInstance = null; // Variável para a instância do Sortable.js
     let unsubscribeFromCategories, unsubscribeFromBudgets, unsubscribeFromGoals, unsubscribeFromAccounts, unsubscribeFromInvestments;
     let isSplitMode = false;
     let isSelectionModeActive = false;
@@ -240,9 +239,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unsubscribeFromGoals) unsubscribeFromGoals();
         if (unsubscribeFromAccounts) unsubscribeFromAccounts();
         if (unsubscribeFromInvestments) unsubscribeFromInvestments();
-
+        if (dashboardSortableInstance) { // Destrói a instância do Sortable.js ao sair do app
+            dashboardSortableInstance.destroy();
+        }
         isFirstDataLoad = true;
-        isDraggableInitialized = false;
         appContainer.classList.add('hidden');
         loginContainer.classList.remove('hidden');
         hideLoader();
@@ -377,12 +377,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (pageInitializers[pageId]) {
-                pageInitializers[pageId]();
-            }
-
-            // Garante que a personalização do dashboard seja carregada sempre que a página for exibida.
-            if (pageId === 'dashboard') {
-                loadAndApplyUserSettings(user);
+                await pageInitializers[pageId](user);
             }
 
             document.querySelectorAll('.group-btn').forEach(btn => btn.onclick = handleReportGrouping);
@@ -1956,50 +1951,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function loadAndApplyUserSettings(user) {
-        const settingsDoc = await db.collection('user_settings').doc(user.uid).get();
-        if (settingsDoc.exists) {
-            userSettings = settingsDoc.data();
-            if (userSettings.dashboardOrder) {
-                applyDashboardOrder(userSettings.dashboardOrder);
-            }
-        }
-        initializeDraggableDashboard(user);
-    }
-
-    function applyDashboardOrder(order) {
-        const grid = document.querySelector('.dashboard-grid');
-        const items = {};
-        grid.childNodes.forEach(node => {
-            if (node.nodeType === 1 && node.dataset.id) {
-                items[node.dataset.id] = node;
-            }
-        });
-
-        order.forEach(id => {
-            if (items[id]) {
-                grid.appendChild(items[id]);
-            }
-        });
-    }
-
-    function initializeDraggableDashboard(user) {
-        if (isDraggableInitialized) return;
-
-        const grid = document.querySelector('.dashboard-grid');
-        new Sortable(grid, {
-            animation: 150,
-            handle: '.grid-item h3',
-            ghostClass: 'sortable-ghost-class',
-            onEnd: (evt) => {
-                const newOrder = [...evt.to.children].map(item => item.dataset.id);
-                db.collection('user_settings').doc(user.uid).set({ dashboardOrder: newOrder }, { merge: true });
-            }
-        });
-
-        isDraggableInitialized = true;
-    }
-
     function renderList({ element, items, renderItem, emptyMessage }) {
         if (!element) return;
         element.innerHTML = '';
@@ -2036,3 +1987,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
+
+async function initializeCustomizableDashboard(user) {
+    const grid = document.querySelector('.dashboard-grid'); // Pega o novo elemento do grid
+
+    if (dashboardSortableInstance) { // Se já existe uma instância, destrói a anterior
+        dashboardSortableInstance.destroy();
+        dashboardSortableInstance = null;
+    }
+    if (!grid) return; // Garante que o grid existe
+
+    const settingsDoc = await db.collection('user_settings').doc(user.uid).get();
+    const savedLayout = settingsDoc.exists ? settingsDoc.data().dashboardLayout : {};
+
+    // Aplica a ordem e os tamanhos salvos
+    if (savedLayout && savedLayout.order) {
+        const items = {};
+        grid.childNodes.forEach(node => {
+            if (node.nodeType === 1 && node.dataset.id) items[node.dataset.id] = node;
+        });
+        savedLayout.order.forEach(id => {
+            if (items[id]) grid.appendChild(items[id]);
+        });
+    }
+
+    document.querySelectorAll('.grid-item').forEach(item => {
+        const cardId = item.dataset.id;
+        const savedSpan = savedLayout?.sizes?.[cardId] || 1;
+        item.classList.add(`col-span-${savedSpan}`);
+    });
+
+    // Função para salvar o layout
+    const saveLayout = () => {
+        const newOrder = [...grid.children].map(item => item.dataset.id);
+        const newSizes = {};
+        grid.querySelectorAll('.grid-item').forEach(item => {
+            const span = item.className.match(/col-span-(\d)/)[1];
+            newSizes[item.dataset.id] = parseInt(span);
+        });
+        db.collection('user_settings').doc(user.uid).set({ dashboardLayout: { order: newOrder, sizes: newSizes } }, { merge: true });
+    };
+
+    // Inicializa o SortableJS para arrastar e soltar
+    dashboardSortableInstance = new Sortable(grid, { // Atribui a nova instância à variável global
+        animation: 150,
+        handle: '.grid-item-header h3',
+        onEnd: saveLayout
+    });
+
+    // Adiciona eventos para os seletores de tamanho
+    grid.querySelectorAll('.card-size-selector button[data-span]').forEach(button => {
+        button.onclick = () => {
+            const card = button.closest('.grid-item');
+            const newSpan = button.dataset.span;
+            card.className = card.className.replace(/col-span-\d/, `col-span-${newSpan}`);
+            saveLayout();
+        };
+    });
+
+}

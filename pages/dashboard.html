@@ -1,34 +1,49 @@
 <div class="dashboard-grid">
-    <div class="grid-item balance-card" data-id="balance">
-        <h3><i class='bx bx-wallet'></i> Patrimônio Total</h3>
+
+    <!-- Card de Saldo Total -->
+    <div class="grid-item balance-card">
+        <h3>Patrimônio Total</h3>
         <h2 id="balance">R$ 0,00</h2>
-        <p id="balance-breakdown">Contas + Investimentos</p>
     </div>
-    <div class="grid-item summary-card income" data-id="income">
-        <h3><i class='bx bx-trending-up'></i> Receitas no Mês</h3>
+
+    <!-- Card de Receitas do Mês -->
+    <div class="grid-item summary-card income">
+        <h3><i class='bx bx-trending-up'></i> Receitas do Mês</h3>
         <h2 id="monthly-income">R$ 0,00</h2>
     </div>
-    <div class="grid-item summary-card expense" data-id="expense">
-        <h3><i class='bx bx-trending-down'></i> Despesas no Mês</h3>
+
+    <!-- Card de Despesas do Mês -->
+    <div class="grid-item summary-card expense">
+        <h3><i class='bx bx-trending-down'></i> Despesas do Mês</h3>
         <h2 id="monthly-expense">R$ 0,00</h2>
     </div>
-    <div class="grid-item chart-container" data-id="chart">
-        <h3><i class='bx bx-pie-chart-alt-2'></i> Balanço do Mês</h3>
+
+    <!-- Card do Gráfico -->
+    <div class="grid-item chart-container">
+        <h3>Balanço Mensal</h3>
         <canvas id="monthly-chart"></canvas>
     </div>
-    <div class="grid-item accounts-container" data-id="accounts">
+
+    <!-- Card de Contas -->
+    <div class="grid-item accounts-container">
         <h3><i class='bx bxs-bank'></i> Contas</h3>
         <ul id="dashboard-accounts-list"></ul>
     </div>
-    <div class="grid-item budgets-container-dashboard" data-id="budgets">
+
+    <!-- Card de Orçamentos -->
+    <div class="grid-item budgets-container-dashboard">
         <h3><i class='bx bx-target-lock'></i> Orçamentos</h3>
         <ul id="dashboard-budgets-list"></ul>
     </div>
-    <div class="grid-item goals-container-dashboard" data-id="goals">
+
+    <!-- Card de Metas -->
+    <div class="grid-item goals-container-dashboard">
         <h3><i class='bx bx-flag'></i> Metas</h3>
         <ul id="dashboard-goals-list"></ul>
     </div>
-    <div class="grid-item transactions-list-dashboard" data-id="transactions">
+
+    <!-- Card de Lançamentos Recentes -->
+    <div class="grid-item transactions-list-dashboard">
         <h3><i class='bx bx-transfer-alt'></i> Lançamentos Recentes</h3>
         <ul id="dashboard-transactions-list"></ul>
     </div>

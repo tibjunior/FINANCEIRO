@@ -208,8 +208,8 @@ body.light-theme .nav-links a { color: var(--text-light); }
 .nav-links a:hover, .nav-links li.active a { background-color: var(--bg-dark); color: var(--accent-dark); }
 body.light-theme .nav-links a:hover, body.light-theme .nav-links li.active a { background-color: var(--bg-light); color: var(--accent-light); }
 .nav-links i { font-size: 22px; }
-.icon-btn { background: transparent; border: none; color: var(--text-dark); font-size: 24px; cursor: pointer; }
-.mobile-only { display: none; }
+.icon-btn { background: transparent; border: none; color: var(--text-dark); font-size: 19px; cursor: pointer; }
+.mobile-only { display: none; padding: 0; } /* Remove o padding horizontal do botão de menu */
 body.light-theme .icon-btn { color: var(--text-light); }
 
 /* Rodapé da Sidebar */
@@ -243,10 +243,11 @@ body.sidebar-collapsed .main-content {
 .main-header {
     display: flex;
     align-items: center; margin-bottom: 30px;
+    gap: 15px; /* Adiciona um espaçamento entre o botão de menu e o título */
 }
 /* Usando clamp para fonte responsiva */
 .main-header h1 {
-    color: var(--heading-dark); font-size: clamp(1.5rem, 1.5vw + 1rem, 2rem);
+    color: var(--heading-dark); font-size: clamp(1.25rem, 1.5vw + 0.8rem, 1.75rem);
 }
 body.light-theme .main-header h1 { color: var(--heading-light); }
 
@@ -259,40 +260,34 @@ body.light-theme #user-greeting { color: var(--text-light); }
 /* --- Dashboard Grid --- */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Layout flexível */
-    grid-gap: 20px;
+    grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: min-content;
+    gap: 20px;
 }
 
-.grid-item { background-color: var(--card-bg-dark); border: 1px solid var(--border-dark); border-radius: 12px; padding: 20px; }
+.grid-item {
+    background-color: var(--card-bg-dark);
+    border: 1px solid var(--border-dark);
+    border-radius: 12px;
+    padding: 20px;
+}
 body.light-theme .grid-item { background-color: var(--card-bg-light); border-color: var(--border-light); }
 
 .grid-item h3 {
-    cursor: move; /* Handle para drag-and-drop */
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid var(--border-dark);
+    color: var(--heading-dark);
 }
+body.light-theme .grid-item h3 { border-color: var(--border-light); color: var(--heading-light); }
 
-.sortable-ghost-class {
-    background-color: rgba(100, 255, 218, 0.1);
-    border: 2px dashed var(--accent-dark);
+.chart-container { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#monthly-chart {
+    max-width: 250px;
+    max-height: 250px;
 }
-
-.balance-card {
-    grid-column: 1 / -1;
-}
-.summary-card.income { grid-column: 1 / 2; }
-.summary-card.expense { grid-column: 2 / 3; }
-.chart-container { grid-column: 1 / 2; grid-row: 3 / 7; }
-.accounts-container { grid-column: 2 / 3; grid-row: 3 / 4; }
-.budgets-container-dashboard { grid-column: 2 / 3; grid-row: 4 / 5; }
-.goals-container-dashboard { grid-column: 2 / 3; grid-row: 5 / 6; }
-.transactions-list-dashboard { grid-column: 2 / 3; grid-row: 6 / 7; }
-
-.balance-card #balance-breakdown {
-    font-size: 0.8rem;
-    color: var(--text-dark);
-}
-
-.summary-card h2 {
-    font-size: 2rem;
+.balance-card h2, .summary-card h2 {
+    font-size: clamp(1.5rem, 2vw, 1.75rem);
     font-weight: 700;
     margin-top: 5px;
 }
@@ -300,16 +295,18 @@ body.light-theme .grid-item { background-color: var(--card-bg-light); border-col
 .summary-card.expense h2 { color: var(--expense-dark); }
 body.light-theme .summary-card.income h2 { color: var(--income-light); }
 body.light-theme .summary-card.expense h2 { color: var(--expense-light); }
+#dashboard-budgets-list, #dashboard-goals-list, #dashboard-accounts-list, #dashboard-transactions-list { flex-grow: 1; }
 
-.chart-container { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.chart-container h3 { margin-bottom: 15px; }
-#monthly-chart {
-    max-width: 250px;
-    max-height: 250px;
-}
+/* Posicionamento Fixo dos Cards */
+.balance-card { grid-column: 1 / -1; }
+.summary-card.income { grid-column: 1 / 2; }
+.summary-card.expense { grid-column: 2 / 3; }
+.chart-container { grid-column: 1 / 2; grid-row: 3 / 5; }
+.accounts-container { grid-column: 2 / 3; grid-row: 3 / 4; }
+.budgets-container-dashboard { grid-column: 2 / 3; grid-row: 4 / 5; }
+.goals-container-dashboard { grid-column: 1 / -1; } /* Ocupa 2 colunas */
+.transactions-list-dashboard { grid-column: 1 / -1; }
 
-/* Contas, Metas e Orçamentos no Dashboard */
-.accounts-container h3, .budgets-container-dashboard h3, .goals-container-dashboard h3 { margin-bottom: 15px; }
 #dashboard-budgets-list, #dashboard-goals-list { list-style: none; display: flex; flex-direction: column; gap: 15px; max-height: 150px; overflow-y: auto; }
 .budget-item, .goal-item-dashboard { display: flex; flex-direction: column; gap: 5px; }
 .budget-info, .goal-info-dashboard { display: flex; justify-content: space-between; font-size: 14px; font-weight: 500; }
@@ -784,6 +781,17 @@ body.light-theme .bulk-action-bar #selection-count { color: var(--heading-light)
 .bulk-actions button { width: auto; padding: 10px 20px; }
 .btn-danger { background-color: var(--expense-dark); color: #fff; }
 
+/* --- Página de Relatórios --- */
+.report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-top: 20px;
+}
+.report-summary.net-balance, .report-transactions-container {
+    grid-column: 1 / -1;
+}
+
 /* --- Mobile Responsiveness (MOVIDO PARA O FINAL PARA GARANTIR PRIORIDADE) --- */
 .mobile-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -796,6 +804,10 @@ body.light-theme .bulk-action-bar #selection-count { color: var(--heading-light)
 }
 
 @media (max-width: 992px) {
+    html {
+        font-size: 15px; /* Reduz a base para unidades rem em telas menores */
+    }
+
     .sidebar { 
         position: fixed; /* Garante que a sidebar fique por cima do conteúdo */
         transform: translateX(-100%); 
@@ -816,13 +828,13 @@ body.light-theme .bulk-action-bar #selection-count { color: var(--heading-light)
 
     /* Ajustes de layout e fontes para telas menores */
     .main-header { margin-bottom: 20px; }
-    .main-header h1 { margin-left: 15px; font-size: clamp(1.25rem, 5vw, 1.5rem); }
-    .dashboard-grid { grid-template-columns: 1fr; } /* Coluna única no mobile */
-    .balance-card, .summary-card, .chart-container, .accounts-container, .budgets-container-dashboard, .goals-container-dashboard, .transactions-list-dashboard {
-        grid-column: auto; /* Reseta o posicionamento do grid */
-        grid-row: auto;
+    .dashboard-grid, .report-grid { grid-template-columns: 1fr !important; } /* Define o layout de coluna única */
+    .main-header h1 { font-size: clamp(1.2rem, 5vw, 1.4rem); }
+    .balance-card, .summary-card, .chart-container, .accounts-container, .budgets-container-dashboard, .goals-container-dashboard, .transactions-list-dashboard, .report-summary, .report-chart-container {
+        grid-column: 1 / -1 !important; /* Força cada card a ocupar a largura total */
+        grid-row: auto !important; /* Permite que a linha seja definida automaticamente */
     }
-    .summary-card h2 { font-size: 1.8rem; }
+    .summary-card h2 { font-size: 1.6rem; }
     .filter-controls { grid-template-columns: 1fr; } /* Filtros em coluna única */
     .category-management { grid-template-columns: 1fr; } /* Categorias em coluna única */
     .modal-content { max-width: 90%; padding: 20px; }
