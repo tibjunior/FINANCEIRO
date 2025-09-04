@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let userAccounts = [];
     let userGoals = [];
     let userInvestments = [];
-    let dashboardSortableInstance = null; // Variável para a instância do Sortable.js
     let unsubscribeFromCategories, unsubscribeFromBudgets, unsubscribeFromGoals, unsubscribeFromAccounts, unsubscribeFromInvestments;
     let isSplitMode = false;
     let isSelectionModeActive = false;
@@ -239,9 +238,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unsubscribeFromGoals) unsubscribeFromGoals();
         if (unsubscribeFromAccounts) unsubscribeFromAccounts();
         if (unsubscribeFromInvestments) unsubscribeFromInvestments();
-        if (dashboardSortableInstance) { // Destrói a instância do Sortable.js ao sair do app
-            dashboardSortableInstance.destroy();
-        }
         isFirstDataLoad = true;
         appContainer.classList.add('hidden');
         loginContainer.classList.remove('hidden');
@@ -356,6 +352,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadPageContent(pageId) {
+        // Destrói instâncias de gráficos antes de carregar novo conteúdo para evitar referências perdidas
+        if (monthlyChart) {
+            monthlyChart.destroy();
+            monthlyChart = null;
+        }
+
         const contentContainer = document.getElementById('main-page-content');
         try {
             const response = await fetch(`pages/${pageId}.html`);
@@ -1915,7 +1917,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateChart(income, expense) {
         const chartCanvas = document.getElementById('monthly-chart');
-        if (!chartCanvas) return; // Se o gráfico não está na página atual, não faz nada.
+        if (!chartCanvas) return;
+
         const ctx = chartCanvas.getContext('2d');
         const isLightTheme = body.classList.contains('light-theme');
 
@@ -1987,62 +1990,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 });
-
-async function initializeCustomizableDashboard(user) {
-    const grid = document.querySelector('.dashboard-grid'); // Pega o novo elemento do grid
-
-    if (dashboardSortableInstance) { // Se já existe uma instância, destrói a anterior
-        dashboardSortableInstance.destroy();
-        dashboardSortableInstance = null;
-    }
-    if (!grid) return; // Garante que o grid existe
-
-    const settingsDoc = await db.collection('user_settings').doc(user.uid).get();
-    const savedLayout = settingsDoc.exists ? settingsDoc.data().dashboardLayout : {};
-
-    // Aplica a ordem e os tamanhos salvos
-    if (savedLayout && savedLayout.order) {
-        const items = {};
-        grid.childNodes.forEach(node => {
-            if (node.nodeType === 1 && node.dataset.id) items[node.dataset.id] = node;
-        });
-        savedLayout.order.forEach(id => {
-            if (items[id]) grid.appendChild(items[id]);
-        });
-    }
-
-    document.querySelectorAll('.grid-item').forEach(item => {
-        const cardId = item.dataset.id;
-        const savedSpan = savedLayout?.sizes?.[cardId] || 1;
-        item.classList.add(`col-span-${savedSpan}`);
-    });
-
-    // Função para salvar o layout
-    const saveLayout = () => {
-        const newOrder = [...grid.children].map(item => item.dataset.id);
-        const newSizes = {};
-        grid.querySelectorAll('.grid-item').forEach(item => {
-            const span = item.className.match(/col-span-(\d)/)[1];
-            newSizes[item.dataset.id] = parseInt(span);
-        });
-        db.collection('user_settings').doc(user.uid).set({ dashboardLayout: { order: newOrder, sizes: newSizes } }, { merge: true });
-    };
-
-    // Inicializa o SortableJS para arrastar e soltar
-    dashboardSortableInstance = new Sortable(grid, { // Atribui a nova instância à variável global
-        animation: 150,
-        handle: '.grid-item-header h3',
-        onEnd: saveLayout
-    });
-
-    // Adiciona eventos para os seletores de tamanho
-    grid.querySelectorAll('.card-size-selector button[data-span]').forEach(button => {
-        button.onclick = () => {
-            const card = button.closest('.grid-item');
-            const newSpan = button.dataset.span;
-            card.className = card.className.replace(/col-span-\d/, `col-span-${newSpan}`);
-            saveLayout();
-        };
-    });
-
-}
