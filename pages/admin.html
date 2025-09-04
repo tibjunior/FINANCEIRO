@@ -1,0 +1,52 @@
+<!-- pages/admin.html -->
+<div class="content-card">
+    <h3>Estatísticas da Plataforma</h3>
+    <div class="dashboard-grid" style="margin-bottom: 30px;">
+        <div class="grid-item balance-card">
+            <h4>Total de Usuários</h4>
+            <p id="admin-stats-total-users" class="balance-value">0</p>
+        </div>
+        <div class="grid-item balance-card">
+            <h4>Assinantes Ativos</h4>
+            <p id="admin-stats-active-subs" class="balance-value">0</p>
+        </div>
+    </div>
+
+    <div class="grid-item" style="margin-bottom: 30px;">
+        <h3>Crescimento de Usuários</h3>
+        <canvas id="admin-user-growth-chart"></canvas>
+        <div id="admin-user-growth-chart-empty" class="empty-state hidden"><p>Ainda não há dados suficientes para gerar o gráfico.</p></div>
+    </div>
+
+    <div class="grid-item" style="margin-bottom: 30px;">
+        <h3>Enviar Aviso Global</h3>
+        <p class="sub-text-card">Esta mensagem aparecerá no topo do dashboard de todos os usuários.</p>
+        <form id="announcement-form">
+            <div class="input-group">
+                <textarea id="announcement-message" rows="3" placeholder="Digite sua mensagem aqui..."></textarea>
+            </div>
+            <button type="submit" id="publish-announcement-btn" class="btn-primary" style="width: auto;">Publicar Aviso</button>
+            <button type="button" id="clear-announcement-btn" class="btn-secondary" style="width: auto;">Limpar Aviso Atual</button>
+        </form>
+    </div>
+
+    <div class="d-flex" style="justify-content: space-between; align-items: center;">
+        <h3>Painel do Administrador</h3>
+        <button id="export-users-csv-btn" class="btn-secondary" style="width: auto;"><i class='bx bx-export'></i> Exportar CSV</button>
+    </div>
+    <p class="sub-text-card">Gerencie o acesso dos usuários.</p>
+
+    <div class="filter-controls" style="grid-template-columns: 1fr; margin-bottom: 20px;">
+        <div class="filter-group">
+            <i class="bx bx-search"></i>
+            <input type="text" id="admin-user-search" placeholder="Pesquisar por e-mail...">
+        </div>
+        <div class="filter-group" style="display: flex; gap: 10px; align-items: center;">
+            <label for="admin-status-filter" style="white-space: nowrap;">Filtrar por:</label>
+            <button class="group-btn active" data-status="all">Todos</button>
+            <button class="group-btn" data-status="active">Ativos</button>
+            <button class="group-btn" data-status="inactive">Inativos</button>
+        </div>
+    </div>
+    <ul id="admin-users-list" style="list-style: none; padding: 0;"></ul>
+</div>

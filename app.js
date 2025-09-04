@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let userAccounts = [];
     let userGoals = [];
     let userInvestments = [];
+    let userProfile = {}; // Para armazenar dados do usuário, incluindo a assinatura
     let unsubscribeFromCategories, unsubscribeFromBudgets, unsubscribeFromGoals, unsubscribeFromAccounts, unsubscribeFromInvestments;
     let isSplitMode = false;
     let isSelectionModeActive = false;
@@ -226,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appContainer.classList.remove('hidden');
 
         setupAppEventListeners(user);
+        checkForAnnouncement(user.uid); // Garante que a notificação seja checada no login
 
         listenToAllData(user);
         showPage('dashboard');
@@ -238,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unsubscribeFromGoals) unsubscribeFromGoals();
         if (unsubscribeFromAccounts) unsubscribeFromAccounts();
         if (unsubscribeFromInvestments) unsubscribeFromInvestments();
+        userProfile = {}; // Limpa o perfil do usuário
         isFirstDataLoad = true;
         appContainer.classList.add('hidden');
         loginContainer.classList.remove('hidden');
@@ -250,7 +253,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupAppEventListeners(user) {
         document.getElementById('logout-button').onclick = () => auth.signOut();
 
-        const toggleSidebar = () => body.classList.toggle('sidebar-open');
+        const toggleSidebar = () => body.classList.toggle('sidebar-open');        
+        const sidebarLinks = document.querySelector('.nav-links');
+        // Limpa links dinâmicos para evitar duplicação no hot-reload
+        sidebarLinks.querySelector('[data-page="assinatura"]')?.parentElement.remove();
+        sidebarLinks.querySelector('[data-page="admin"]')?.parentElement.remove();
+
+        // Adiciona links dinamicamente
+        sidebarLinks.insertAdjacentHTML('beforeend', `<li><a href="#" class="nav-link" data-page="assinatura"><i class='bx bx-star'></i><span>Assinatura</span></a></li>`);
+        if (user.uid === 'avD0McusEgSo71zlbqMQxTx5uUm1') { // IMPORTANTE: Substitua pelo seu UID de Admin
+            sidebarLinks.insertAdjacentHTML('beforeend', `<li><a href="#" class="nav-link" data-page="admin"><i class='bx bx-shield-quarter'></i><span>Admin</span></a></li>`);
+        }
+
         document.getElementById('menu-toggle-btn').onclick = toggleSidebar;
         document.getElementById('sidebar-close-btn').onclick = toggleSidebar;
         document.getElementById('mobile-overlay').onclick = toggleSidebar;
@@ -263,6 +277,10 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('sidebar-toggle-btn').onclick = handleSidebarToggle;
 
         const firstName = user.displayName || user.email.split('@')[0];
+        // Listeners do popup de notificação
+        document.getElementById('notification-bell').onclick = toggleNotificationPopup;
+        document.getElementById('close-notification-popup').onclick = toggleNotificationPopup;
+
         document.getElementById('user-greeting').textContent = `Olá, ${firstName}!`;
         if (user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
 
@@ -336,6 +354,11 @@ document.addEventListener('DOMContentLoaded', () => {
             modalOverlay.classList.add('hidden');
             return;
         }
+
+        if (target.id === 'cancel-admin-details-btn') {
+            document.getElementById('admin-user-details-modal').classList.add('hidden');
+            return;
+        }
     }
 
     async function showPage(pageId) {
@@ -376,10 +399,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 'contas': renderAccountsPage,
                 'metas': renderGoalsPage,
                 'investimentos': renderInvestmentsPage,
+                'admin': (u) => initializeAdminPage(u),
             };
+
+            // Lógica de Bloqueio de Acesso
+            const isSubscriptionActive = userProfile.accessValidUntil && userProfile.accessValidUntil.toDate() > new Date();
+            const protectedPages = ['dashboard', 'lancamentos', 'relatorios', 'orcamentos', 'contas', 'metas', 'investimentos', 'categorias'];
+        
+            // Exceção para o admin
+            if (user.uid === 'avD0McusEgSo71zlbqMQxTx5uUm1') { // IMPORTANTE: Substitua pelo seu UID de Admin
+                // não faz nada, permite o acesso
+            } else if (protectedPages.includes(pageId) && !isSubscriptionActive) {
+                // Se o acesso for negado, carrega a página de assinatura e para.
+                pageId = 'assinatura'; // Força o carregamento da página de assinatura
+            }
 
             if (pageInitializers[pageId]) {
                 await pageInitializers[pageId](user);
+            } else if (pageId === 'assinatura') {
+                // Caso especial para a página de assinatura, que não tem um inicializador complexo
+                renderSubscriptionPage();
+                return; // Impede o carregamento da página protegida
             }
 
             document.querySelectorAll('.group-btn').forEach(btn => btn.onclick = handleReportGrouping);
@@ -649,6 +689,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. Garante que categorias e contas sejam carregadas (e criadas, se necessário) primeiro.
             // Essas são as dependências principais.
             await listenForCategories(user);
+            // 1.5 Escuta o perfil do usuário (para status de assinatura)
+            await listenForUserProfile(user);
+
             await listenForAccounts(user);
 
             // 2. Agora que temos contas e categorias, podemos carregar o resto em paralelo.
@@ -1988,5 +2031,367 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
             if (button) button.classList.remove('btn-loading');
         }
+    }
+
+    // --- LÓGICA DE ASSINATURA MANUAL ---
+
+    function listenForUserProfile(user) {
+        return new Promise((resolve) => {
+            db.collection('users').doc(user.uid).onSnapshot(doc => {
+                if (doc.exists) {
+                    userProfile = { id: doc.id, ...doc.data() };
+                } else {
+                    // Cria um perfil básico se não existir
+                    db.collection('users').doc(user.uid).set({
+                        email: user.email,
+                        createdAt: new Date().toISOString()
+                    }, { merge: true });
+                }
+                // Atualiza a UI da página de assinatura se ela estiver visível
+                if (document.getElementById('subscription-status-content')) {
+                    renderSubscriptionPage();
+                }
+                resolve();
+            });
+        });
+    }
+
+    function renderSubscriptionPage() {
+        const statusEl = document.getElementById('plan-status');
+        const validUntilEl = document.getElementById('plan-valid-until');
+        const daysRemainingEl = document.getElementById('plan-days-remaining');
+
+        if (!statusEl) return;
+
+        // Verifica se o usuário é o admin
+        const currentUser = auth.currentUser;
+        if (currentUser && currentUser.uid === 'avD0McusEgSo71zlbqMQxTx5uUm1') { // IMPORTANTE: Substitua pelo seu UID de Admin
+            statusEl.textContent = "Administrador";
+            statusEl.style.color = 'var(--accent-dark)';
+            validUntilEl.innerHTML = `<strong>Acesso:</strong> Vitalício`;
+            daysRemainingEl.innerHTML = `<strong>Permissões:</strong> Totais`;
+            // Oculta a caixa de renovação para o admin
+            document.querySelector('.content-card[style*="border-color"]').classList.add('hidden');
+            return;
+        }
+
+        if (userProfile.accessValidUntil && userProfile.accessValidUntil.toDate() > new Date()) {
+            const expirationDate = userProfile.accessValidUntil.toDate();
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Zera a hora para uma comparação justa de dias
+
+            // Calcula a diferença em milissegundos e converte para dias
+            const diffTime = expirationDate.getTime() - today.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            statusEl.textContent = "Ativo";
+            statusEl.style.color = 'var(--income-dark)';
+            validUntilEl.innerHTML = `<strong>Válido até:</strong> ${expirationDate.toLocaleDateString('pt-BR')}`;
+            daysRemainingEl.innerHTML = `<strong>Dias restantes:</strong> ${diffDays}`;
+        } else {
+            statusEl.textContent = "Inativo";
+            statusEl.style.color = 'var(--expense-dark)';
+            validUntilEl.textContent = 'Seu acesso expirou ou está inativo.';
+            daysRemainingEl.textContent = '';
+            // Gera o QR Code apenas se o usuário não for admin e estiver inativo
+            generatePixQRCode();
+        }
+    }
+
+    // --- LÓGICA DE ADMIN ---
+
+    async function initializeAdminPage(user) {
+        // Proteção: Somente o admin pode ver esta página
+        if (user.uid !== 'avD0McusEgSo71zlbqMQxTx5uUm1') { // IMPORTANTE: Substitua pelo seu UID de Admin
+            document.getElementById('main-page-content').innerHTML = `<div class="content-card"><p>Acesso negado.</p></div>`;
+            return;
+        }
+
+        const users = await db.collection('users').get();
+        const allUsersData = users.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        const searchInput = document.getElementById('admin-user-search');
+        searchInput.oninput = () => renderAdminUsersList(allUsersData, searchInput.value);
+
+        // Renderiza as estatísticas
+        const activeSubscribers = allUsersData.filter(u => u.accessValidUntil && u.accessValidUntil.toDate() > new Date()).length;
+        document.getElementById('admin-stats-total-users').textContent = allUsersData.length;
+        document.getElementById('admin-stats-active-subs').textContent = activeSubscribers;
+
+        // Adiciona listener para fechar o novo modal
+        document.getElementById('admin-user-details-modal').onclick = (e) => { if (e.target.id === 'admin-user-details-modal') e.currentTarget.classList.add('hidden'); };
+
+        // Listeners do formulário de aviso
+        document.getElementById('announcement-form').onsubmit = (e) => { e.preventDefault(); publishAnnouncement(); };
+        document.getElementById('clear-announcement-btn').onclick = clearAnnouncement;
+        document.getElementById('export-users-csv-btn').onclick = () => exportUsersToCSV(allUsersData);
+
+        renderUserGrowthChart(allUsersData);
+
+        renderAdminUsersList(allUsersData);
+    }
+
+    function renderAdminUsersList(users, searchTerm = '') {
+        const listEl = document.getElementById('admin-users-list');
+        if (!listEl) return;
+        
+        const statusFilter = document.querySelector('.filter-group .group-btn[data-status].active')?.dataset.status || 'all';
+
+        const filteredUsers = users.filter(u => {
+            const searchMatch = u.email.toLowerCase().includes(searchTerm.toLowerCase());
+            const isActive = u.accessValidUntil && u.accessValidUntil.toDate() > new Date();
+            const statusMatch = (statusFilter === 'all') || (statusFilter === 'active' && isActive) || (statusFilter === 'inactive' && !isActive);
+            return searchMatch && statusMatch;
+        });
+
+        listEl.innerHTML = '';
+        filteredUsers.forEach(u => {
+            const item = document.createElement('li');
+            const validUntil = u.accessValidUntil ? u.accessValidUntil.toDate().toLocaleDateString('pt-BR') : 'Nenhum';
+            const isActive = u.accessValidUntil && u.accessValidUntil.toDate() > new Date();
+
+            item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-dark);';
+            item.innerHTML = `
+                <div>
+                    <p style="font-weight: 600;">${u.email}</p>
+                    <small>Acesso válido até: <span style="color: ${isActive ? 'var(--income-dark)' : 'var(--expense-dark)'}">${validUntil}</span></small>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-primary extend-30-days" style="width: auto; font-size: 12px; padding: 8px 12px;">+30 dias</button>
+                    <button class="btn-secondary extend-365-days" style="width: auto; font-size: 12px; padding: 8px 12px;">+365 dias</button>
+                    <button class="action-btn view-details" title="Ver Detalhes"><i class='bx bx-show'></i></button>
+                </div>
+            `;
+
+            item.querySelector('.extend-30-days').onclick = () => extendAccess(u.id, 30);
+            item.querySelector('.extend-365-days').onclick = () => extendAccess(u.id, 365);
+
+            listEl.appendChild(item);
+            item.querySelector('.view-details').onclick = () => showUserDetails(u);
+        });
+    }
+
+    function extendAccess(userId, days) {
+        const userRef = db.collection('users').doc(userId);
+
+        db.runTransaction(async (transaction) => {
+            const userDoc = await transaction.get(userRef);
+            const userData = userDoc.exists ? userDoc.data() : {};
+            
+            const baseDate = (userData.accessValidUntil && userData.accessValidUntil.toDate() > new Date())
+                ? userData.accessValidUntil.toDate()
+                : new Date();
+
+            const newDate = new Date(baseDate.setDate(baseDate.getDate() + days));
+
+            transaction.set(userRef, { accessValidUntil: firebase.firestore.Timestamp.fromDate(newDate) }, { merge: true });
+        }).then(() => {
+            showToast(`Acesso do usuário estendido por ${days} dias.`);
+        }).catch(err => {
+            console.error("Erro ao estender acesso: ", err);
+            showToast('Erro ao estender acesso.', 'error');
+        });
+    }
+
+    async function showUserDetails(user) {
+        const modal = document.getElementById('admin-user-details-modal');
+        document.getElementById('admin-details-email').textContent = user.email;
+        document.getElementById('admin-details-uid').textContent = user.id;
+
+        const listEl = document.getElementById('admin-details-transactions-list');
+        listEl.innerHTML = '<li>Carregando...</li>';
+        modal.classList.remove('hidden');
+
+        try {
+            const transactionsSnapshot = await db.collection('transactions')
+                .where('userId', '==', user.id)
+                .orderBy('date', 'desc')
+                .limit(10)
+                .get();
+
+            if (transactionsSnapshot.empty) {
+                listEl.innerHTML = '<li>Nenhum lançamento encontrado.</li>';
+                return;
+            }
+
+            listEl.innerHTML = '';
+            transactionsSnapshot.forEach(doc => {
+                const tx = doc.data();
+                const item = document.createElement('li');
+                item.innerHTML = `<span>${new Date(tx.date).toLocaleDateString('pt-BR')} - ${tx.description}</span> <span class="${tx.type}">${tx.type === 'income' ? '+' : '-'} R$ ${tx.amount.toFixed(2)}</span>`;
+                listEl.appendChild(item);
+            });
+        } catch (error) {
+            console.error("Erro ao buscar detalhes do usuário:", error);
+            listEl.innerHTML = '<li>Erro ao carregar lançamentos.</li>';
+        }
+    }
+
+    function renderUserGrowthChart(users) {
+        const chartCanvas = document.getElementById('admin-user-growth-chart');
+        const emptyState = document.getElementById('admin-user-growth-chart-empty');
+        if (!chartCanvas || !emptyState) return;
+
+        const signupsByMonth = users.reduce((acc, user) => {
+            if (user.createdAt) {
+                const monthKey = user.createdAt.slice(0, 7); // Formato "YYYY-MM"
+                acc[monthKey] = (acc[monthKey] || 0) + 1;
+            }
+            return acc;
+        }, {});
+
+        const sortedMonths = Object.keys(signupsByMonth).sort();
+
+        if (sortedMonths.length < 2) {
+            chartCanvas.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            return;
+        }
+
+        chartCanvas.classList.remove('hidden');
+        emptyState.classList.add('hidden');
+
+        const labels = sortedMonths.map(monthKey => {
+            const [year, month] = monthKey.split('-');
+            return new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+        });
+        const data = sortedMonths.map(monthKey => signupsByMonth[monthKey]);
+
+        new Chart(chartCanvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Novos Usuários',
+                    data: data,
+                    fill: true,
+                    backgroundColor: 'rgba(100, 255, 218, 0.1)',
+                    borderColor: 'rgba(100, 255, 218, 1)',
+                    tension: 0.1
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8892b0' } }, y: { ticks: { color: '#8892b0' }, beginAtZero: true } } }
+        });
+    }
+
+    // --- LÓGICA DE AVISO GLOBAL ---
+
+    function checkForAnnouncement(userId) {
+        const notificationDot = document.getElementById('notification-dot');
+        const notificationContent = document.getElementById('notification-content');
+        if (!notificationDot || !notificationContent) return;
+
+        // Usa onSnapshot para ouvir mudanças em tempo real
+        db.collection('app_settings').doc('announcement').onSnapshot(doc => {
+            try {
+                if (doc.exists && doc.data().message) {
+                    const data = doc.data();
+                    notificationContent.innerHTML = `<p>${data.message}</p>`;
+
+                    // Verifica se o usuário já leu este aviso
+                    const lastReadTimestamp = localStorage.getItem(`announcement_read_${userId}`);
+                    if (lastReadTimestamp !== data.updatedAt) {
+                        notificationDot.classList.remove('hidden');
+                    } else {
+                        notificationDot.classList.add('hidden');
+                    }
+                } else {
+                    notificationDot.classList.add('hidden');
+                    notificationContent.innerHTML = '<p>Nenhum aviso no momento.</p>';
+                }
+            } catch (error) {
+                console.error("Erro ao processar aviso:", error);
+            }
+        }, error => {
+            console.error("Erro ao ouvir avisos:", error);
+        });
+    }
+
+    async function toggleNotificationPopup() {
+        const popup = document.getElementById('notification-popup');
+        const notificationDot = document.getElementById('notification-dot');
+        const isOpening = popup.classList.toggle('hidden');
+
+        // Se o popup está sendo aberto e a notificação existe
+        if (!isOpening && !notificationDot.classList.contains('hidden')) {
+            notificationDot.classList.add('hidden');
+            
+            // Salva o timestamp do aviso lido no localStorage
+            const userId = auth.currentUser.uid;
+            const doc = await db.collection('app_settings').doc('announcement').get();
+            if (doc.exists) {
+                localStorage.setItem(`announcement_read_${userId}`, doc.data().updatedAt);
+            }
+        }
+    }
+
+    async function publishAnnouncement() {
+        const message = document.getElementById('announcement-message').value.trim();
+        if (!message) {
+            return showToast('A mensagem não pode estar vazia.', 'error');
+        }
+
+        const button = document.getElementById('publish-announcement-btn');
+        button.classList.add('btn-loading');
+
+        try {
+            await db.collection('app_settings').doc('announcement').set({
+                message: message,
+                updatedAt: new Date().toISOString()
+            });
+            showToast('Aviso publicado com sucesso!');
+            document.getElementById('announcement-message').value = '';
+        } catch (error) {
+            showToast('Erro ao publicar aviso.', 'error');
+        } finally {
+            button.classList.remove('btn-loading');
+        }
+    }
+
+    async function clearAnnouncement() {
+        if (confirm('Tem certeza que deseja remover o aviso atual?')) {
+            await db.collection('app_settings').doc('announcement').set({ message: '' });
+            showToast('Aviso removido.');
+        }
+    }
+
+    function exportUsersToCSV(users) {
+        if (users.length === 0) {
+            return showToast('Não há usuários para exportar.', 'error');
+        }
+
+        const headers = ['Email', 'DataCadastro', 'AcessoValidoAte'];
+        const rows = users.map(u => {
+            const email = u.email || '';
+            const createdAt = u.createdAt ? new Date(u.createdAt).toLocaleDateString('pt-BR') : 'N/A';
+            const accessValidUntil = u.accessValidUntil ? u.accessValidUntil.toDate().toLocaleDateString('pt-BR') : 'N/A';
+            return [email, createdAt, accessValidUntil].join(',');
+        });
+
+        const csvContent = [headers.join(','), ...rows].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.setAttribute("href", URL.createObjectURL(blob));
+        link.setAttribute("download", `lista_usuarios_${new Date().toISOString().split('T')[0]}.csv`);
+        link.click();
+    }
+
+    function generatePixQRCode() {
+        const container = document.getElementById('pix-qrcode-container');
+        if (!container) return;
+
+        // IMPORTANTE: Gere sua string "PIX Copia e Cola" em um gerador online e cole aqui.
+        // Esta é uma string de exemplo e NÃO FUNCIONARÁ.
+        const pixPayload = "00020126580014br.gov.bcb.pix0136seu-email-pix@dominio.com520400005303986540519.905802BR5913NOME DO TITULAR6009SAO PAULO62070503***6304ABCD";
+
+        const qr = new QRCode(document.createElement('div'), {
+            text: pixPayload,
+            width: 128,
+            height: 128,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        container.innerHTML = qr._el.innerHTML;
     }
 });

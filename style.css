@@ -208,6 +208,7 @@ body.light-theme .nav-links a { color: var(--text-light); }
 .nav-links a:hover, .nav-links li.active a { background-color: var(--bg-dark); color: var(--accent-dark); }
 body.light-theme .nav-links a:hover, body.light-theme .nav-links li.active a { background-color: var(--bg-light); color: var(--accent-light); }
 .nav-links i { font-size: 22px; }
+.icon-btn { background: transparent; border: none; color: var(--text-dark); font-size: 22px; cursor: pointer; padding: 5px; }
 .icon-btn { background: transparent; border: none; color: var(--text-dark); font-size: 19px; cursor: pointer; }
 .mobile-only { display: none; padding: 0; } /* Remove o padding horizontal do botão de menu */
 body.light-theme .icon-btn { color: var(--text-light); }
@@ -252,10 +253,51 @@ body.sidebar-collapsed .main-content {
 body.light-theme .main-header h1 { color: var(--heading-light); }
 
 .user-info { display: flex; align-items: center; gap: 15px; }
-#user-greeting { font-weight: 600; color: var(--heading-dark); }
+#user-greeting { font-weight: 600; color: var(--heading-dark); white-space: nowrap; }
 body.light-theme #user-greeting { color: var(--text-light); }
 .avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #ccc; }
 .user-info { margin-left: auto; }
+
+/* Estilos do Sino de Notificação */
+#notification-bell {
+    position: relative;
+    padding: 1px; /* Adiciona um padding para facilitar o clique */
+}
+.notification-dot {
+    position: absolute; top: 0; right: 0; width: 8px; ; height: 8px;
+    background-color: var(--expense-dark); border-radius: 20%; border: 1px solid var(--bg-dark);
+}
+
+/* --- Popup de Notificações --- */
+.notification-popup {
+    position: fixed;
+    top: 70px; /* Abaixo do cabeçalho */
+    right: 30px;
+    width: 320px;
+    max-width: 90%;
+    background-color: var(--card-bg-dark);
+    border: 1px solid var(--border-dark);
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    z-index: 1200;
+    animation: fadeInModal 0.6s ease;
+}
+body.light-theme .notification-popup { background-color: var(--card-bg-light); border-color: var(--border-light); }
+
+.notification-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 15px; border-bottom: 1px solid var(--border-dark);
+}
+body.light-theme .notification-header { border-color: var(--border-light); }
+.notification-header h4 { margin: 0; color: var(--heading-dark); }
+body.light-theme .notification-header h4 { color: var(--heading-light); }
+.notification-header .icon-btn { padding: 0; } /* Remove padding extra do botão de fechar */
+
+.notification-content { 
+    padding: 15px; font-size: 14px; max-height: 300px; overflow-y: auto; 
+    overflow-wrap: break-word; /* Garante a quebra de palavras longas */
+    word-wrap: break-word; /* Fallback para navegadores mais antigos */
+}
 
 /* --- Dashboard Grid --- */
 .dashboard-grid {

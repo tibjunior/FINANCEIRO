@@ -137,6 +137,10 @@
                 <div class="user-info">
                     <span id="user-greeting">Olá!</span>
                     <img src="https://i.pravatar.cc/40" alt="Avatar do usuário" class="avatar" id="user-avatar">
+                    <button id="notification-bell" class="icon-btn" aria-label="Notificações">
+                        <i class='bx bx-bell'></i>
+                        <span id="notification-dot" class="notification-dot hidden"></span>
+                    </button>
                 </div>
             </header>
 
@@ -148,6 +152,15 @@
         <div id="mobile-overlay" class="mobile-overlay hidden"></div>
 
         <div id="toast-container"></div>
+
+        <!-- Popup de Notificações -->
+        <div id="notification-popup" class="notification-popup hidden">
+            <div class="notification-header">
+                <h4>Avisos</h4>
+                <button id="close-notification-popup" class="icon-btn"><i class="bx bx-x"></i></button>
+            </div>
+            <div id="notification-content" class="notification-content"></div>
+        </div>
 
         <!-- Modal de Transação -->
         <div id="transaction-modal" class="modal-overlay hidden">
@@ -370,6 +383,21 @@
         </div>
     </div>
 
+    <!-- Modal de Detalhes do Usuário (Admin) -->
+    <div id="admin-user-details-modal" class="modal-overlay hidden">
+        <div class="modal-content grid-item" style="max-width: 800px;">
+            <h2 id="admin-user-details-title">Detalhes do Usuário</h2>
+            <p><strong>Email:</strong> <span id="admin-details-email"></span></p>
+            <p><strong>ID:</strong> <span id="admin-details-uid"></span></p>
+            <h4 style="margin-top: 20px;">Últimos 10 Lançamentos</h4>
+            <ul id="admin-details-transactions-list" class="compact-list"></ul>
+            <div class="modal-actions">
+                <button type="button" id="cancel-admin-details-btn">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+
     <!-- Firebase SDK (v8 - compatível com seu app.js) -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -377,6 +405,7 @@
 
     <!-- Bibliotecas externas -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 
     <!-- Seus scripts (devem vir DEPOIS do SDK do Firebase) -->
     <script src="./firebase-config.js"></script>
