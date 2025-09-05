@@ -9,16 +9,16 @@
         <p id="plan-days-remaining"></p>
     </div>
 
-    <div class="content-card" style="margin-top: 30px; border-color: var(--accent-dark);">
+    <div id="renewal-section" class="content-card hidden" style="margin-top: 30px; border-color: var(--accent-dark);">
         <h3>Renove seu Acesso</h3>
-        <p class="sub-text-card">Para liberar seu acesso por mais 30 dias, realize o pagamento via PIX e aguarde a liberação manual em até 24 horas.</p>
-        <div style="display: flex; gap: 20px; align-items: center;">
-            <div id="pix-qrcode-container" style="padding: 10px; background: white; border-radius: 8px;"></div>
-            <ul>
-                <li><strong>Valor:</strong> R$ 14,90</li>
-                <li><strong>Chave PIX (E-mail):</strong> (81) 9 9990-2392</li>
-            </ul>
-        </div>
-        <p class="sub-text-card" style="margin-top: 15px;">Após o pagamento, seu acesso será renovado. Não é necessário enviar comprovante.</p>
+        <p class="sub-text-card">Seu acesso está inativo. Clique no botão abaixo para gerar um pagamento PIX e renovar sua assinatura.</p>
+        <button id="open-payment-modal-btn" class="btn-primary" style="width: 100%;"><i class='bx bx-qr-scan'></i> Gerar Pagamento</button>
+    </div>
+
+    <div class="content-card" style="margin-top: 30px;">
+        <h3><i class='bx bx-history'></i> Histórico de Pagamentos</h3>
+        <p class="sub-text-card">Aqui você pode ver o histórico de suas renovações de assinatura.</p>
+        <ul id="subscription-history-list" class="compact-list">
+        </ul>
     </div>
 </div>
