@@ -303,7 +303,7 @@ body.light-theme .notification-header h4 { color: var(--heading-light); }
 .dashboard-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: min-content;
+    /* grid-auto-rows: min-content; */ /* Removido para simplificar */
     gap: 20px;
 }
 
@@ -312,6 +312,7 @@ body.light-theme .notification-header h4 { color: var(--heading-light); }
     border: 1px solid var(--border-dark);
     border-radius: 12px;
     padding: 20px;
+    margin-bottom: 20px; /* Adiciona espaçamento inferior a todos os cards */
 }
 body.light-theme .grid-item { background-color: var(--card-bg-light); border-color: var(--border-light); }
 
@@ -322,6 +323,13 @@ body.light-theme .grid-item { background-color: var(--card-bg-light); border-col
     color: var(--heading-dark);
 }
 body.light-theme .grid-item h3 { border-color: var(--border-light); color: var(--heading-light); }
+
+.compact-list { list-style: none; max-height: 300px; overflow-y: auto; }
+.compact-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 5px; border-bottom: 1px solid var(--border-dark); font-size: 14px; }
+.compact-list li:last-child { border-bottom: none; }
+.compact-list li small { color: var(--text-dark); white-space: nowrap; margin-left: 15px; }
+body.light-theme .compact-list li { border-color: var(--border-light); }
+
 
 .chart-container { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 #monthly-chart {
@@ -625,7 +633,7 @@ body.light-theme .transaction-amount.expense { color: var(--expense-light); }
 .action-btn.delete:hover { color: var(--expense-dark); }
 
 /* Força a visibilidade das ações em listas que não usam hover (ex: página de categorias) */
-.actions-always-visible {
+.actions-always-visible, #admin-users-list li .transaction-actions {
     opacity: 1;
 }
 
@@ -643,6 +651,7 @@ body.light-theme .transaction-amount.expense { color: var(--expense-light); }
 
 /* --- Estilos de Formulário (Reutilizável) --- */
 .input-group { position: relative; margin-bottom: 15px; }
+.input-group textarea { width: 100%; padding: 12px 15px; border-radius: 8px; border: 1px solid var(--border-dark); background-color: rgba(0,0,0,0.2); color: var(--heading-dark); font-family: var(--font-family); font-size: 16px; resize: vertical; }
 .input-group i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #8892b0; }
 input { width: 100%; padding: 12px 15px 12px 45px; border-radius: 8px; border: 1px solid var(--border-dark); background-color: rgba(0,0,0,0.2); color: var(--heading-dark); font-family: var(--font-family); font-size: 16px; }
 select { width: 100%; padding: 12px 15px 12px 45px; border-radius: 8px; border: 1px solid var(--border-dark); background-color: rgba(0,0,0,0.2); color: var(--heading-dark); font-family: var(--font-family); font-size: 16px; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238892b0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 15px center; background-size: 1em; }
@@ -651,7 +660,7 @@ select option {
     color: var(--heading-dark);
 }
 body.light-theme select { border-color: var(--border-light); background-color: #fff; color: var(--text-light); background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%e%3c/svg%3e"); }
-body.light-theme input { border-color: var(--border-light); background-color: #fff; color: var(--text-light); }
+body.light-theme input, body.light-theme .input-group textarea { border-color: var(--border-light); background-color: #fff; color: var(--text-light); }
 input:focus, select:focus { outline: none; border-color: var(--accent-dark); }
 body.light-theme input:focus, body.light-theme select:focus { border-color: var(--accent-light); }
 
@@ -875,10 +884,79 @@ body.light-theme .bulk-action-bar #selection-count { color: var(--heading-light)
     .balance-card, .summary-card, .chart-container, .accounts-container, .budgets-container-dashboard, .goals-container-dashboard, .transactions-list-dashboard, .report-summary, .report-chart-container {
         grid-column: 1 / -1 !important; /* Força cada card a ocupar a largura total */
         grid-row: auto !important; /* Permite que a linha seja definida automaticamente */
-    }
+}
     .summary-card h2 { font-size: 1.6rem; }
     .filter-controls { grid-template-columns: 1fr; } /* Filtros em coluna única */
     .category-management { grid-template-columns: 1fr; } /* Categorias em coluna única */
     .modal-content { max-width: 90%; padding: 20px; }
     .bulk-action-bar { left: 0; width: 100%; }
+}
+
+/* --- Estilos da Página de Admin --- */
+.admin-dashboard {
+    display: grid;
+    grid-template-columns: 1fr; /* Todos os cards em uma única coluna */
+    gap: 25px;
+    align-items: start;
+}
+
+.admin-section h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.2rem;
+    color: var(--heading-dark);
+    margin-bottom: 15px;
+}
+body.light-theme .admin-section h3 { color: var(--heading-light); }
+
+.admin-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.admin-card-header h3 {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* Ajustes específicos para o textarea da página de admin */
+#announcement-message {
+    height: 150px; /* Altura fixa */
+    resize: none; /* Impede o redimensionamento pelo usuário */
+}
+
+/* Estilos para os botões de ação do formulário de admin */
+.admin-form-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Cria duas colunas */
+    gap: 15px; /* Espaçamento entre os botões */
+    margin-top: 20px; /* Espaçamento acima dos botões */
+}
+.btn-admin { width: auto; padding: 10px 20px; }
+
+
+/* --- Media Queries Específicas para a Página de Admin --- */
+@media (max-width: 768px) {
+    /* Ajusta os filtros de gerenciamento de usuários para empilhar em telas pequenas */
+    .admin-dashboard .filter-controls {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    /* Garante que os cards de estatísticas fiquem em uma coluna */
+    .admin-dashboard .report-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Oculta os botões de texto e mostra apenas ícones na lista de usuários */
+    #admin-users-list .btn-primary.recharge-access,
+    #admin-users-list .btn-secondary.recharge-access {
+        display: none;
+    }
+
+    #admin-users-list .action-btn { display: inline-flex; }
 }

@@ -293,6 +293,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('account-form').onsubmit = (e) => { e.preventDefault(); saveAccount(user.uid); };
         document.getElementById('goal-form').onsubmit = (e) => { e.preventDefault(); saveGoal(user.uid); };
         document.getElementById('contribution-form').onsubmit = (e) => { e.preventDefault(); saveContribution(user.uid); };
+        document.getElementById('payment-form').onsubmit = (e) => { e.preventDefault(); }; // Previne envio do form
+        document.getElementById('admin-recharge-form').onsubmit = (e) => { e.preventDefault(); updateUserAccess(); };
 
         // Listeners de input/change (podem ser delegados também)
         document.getElementById('main-page-content').addEventListener('input', (e) => {
@@ -344,6 +346,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'add-split-btn': () => addSplitRow(),
         };
 
+        if (target.id === 'open-payment-modal-btn') openPaymentModal();
+        if (target.id === 'generate-qr-code-btn') generatePaymentQRCode();
+        if (target.id === 'confirm-payment-btn') handlePaymentConfirmation();
+
         if (actionHandlers[targetId]) {
             actionHandlers[targetId]();
             return;
@@ -352,6 +358,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const modalOverlay = target.closest('.modal-overlay');
         if (modalOverlay && (target.classList.contains('modal-overlay') || target.id.startsWith('cancel-'))) {
             modalOverlay.classList.add('hidden');
+            return;
+        }
+
+        if (target.id === 'cancel-recharge-btn') {
+            document.getElementById('admin-recharge-modal').classList.add('hidden');
+            return;
+        }
+
+        if (target.id === 'cancel-payment-btn') {
+            document.getElementById('payment-modal').classList.add('hidden');
             return;
         }
 
@@ -387,6 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(`Página não encontrada: ${pageId}.html`);
             contentContainer.innerHTML = await response.text();
 
+            // Garante que o perfil do usuário (com dados de assinatura) esteja carregado antes de prosseguir.
+            await listenForUserProfile(auth.currentUser);
+
             const user = auth.currentUser;
             if (!user) return; 
  
@@ -419,7 +438,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (pageId === 'assinatura') {
                 // Caso especial para a página de assinatura, que não tem um inicializador complexo
                 renderSubscriptionPage();
-                return; // Impede o carregamento da página protegida
             }
 
             document.querySelectorAll('.group-btn').forEach(btn => btn.onclick = handleReportGrouping);
@@ -1758,6 +1776,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function generateReport() {
+        // Garante que a função só rode se os elementos da página de relatórios existirem
+        if (!document.getElementById('report-start-date')) return;
+
         const startDate = document.getElementById('report-start-date').value;
         const endDate = document.getElementById('report-end-date').value;
         const type = document.getElementById('report-type-filter').value;
@@ -2050,6 +2071,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Atualiza a UI da página de assinatura se ela estiver visível
                 if (document.getElementById('subscription-status-content')) {
                     renderSubscriptionPage();
+                    renderSubscriptionHistory(user.uid);
                 }
                 resolve();
             });
@@ -2062,6 +2084,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const daysRemainingEl = document.getElementById('plan-days-remaining');
 
         if (!statusEl) return;
+        const renewalSection = document.getElementById('renewal-section');
+
+        // Preenche o seletor de meses no modal de pagamento
+        const monthsSelect = document.getElementById('payment-months');
+        if (monthsSelect) initializeMonthsSelector(monthsSelect);
 
         // Verifica se o usuário é o admin
         const currentUser = auth.currentUser;
@@ -2071,7 +2098,7 @@ document.addEventListener('DOMContentLoaded', () => {
             validUntilEl.innerHTML = `<strong>Acesso:</strong> Vitalício`;
             daysRemainingEl.innerHTML = `<strong>Permissões:</strong> Totais`;
             // Oculta a caixa de renovação para o admin
-            document.querySelector('.content-card[style*="border-color"]').classList.add('hidden');
+            if (renewalSection) renewalSection.classList.add('hidden');
             return;
         }
 
@@ -2088,47 +2115,62 @@ document.addEventListener('DOMContentLoaded', () => {
             statusEl.style.color = 'var(--income-dark)';
             validUntilEl.innerHTML = `<strong>Válido até:</strong> ${expirationDate.toLocaleDateString('pt-BR')}`;
             daysRemainingEl.innerHTML = `<strong>Dias restantes:</strong> ${diffDays}`;
+            if (renewalSection) renewalSection.classList.add('hidden'); // Esconde a renovação se estiver ativo
         } else {
             statusEl.textContent = "Inativo";
             statusEl.style.color = 'var(--expense-dark)';
             validUntilEl.textContent = 'Seu acesso expirou ou está inativo.';
             daysRemainingEl.textContent = '';
-            // Gera o QR Code apenas se o usuário não for admin e estiver inativo
-            generatePixQRCode();
+            if (renewalSection) renewalSection.classList.remove('hidden'); // Mostra a renovação se estiver inativo
+            renderSubscriptionHistory(auth.currentUser.uid);
         }
     }
 
     // --- LÓGICA DE ADMIN ---
 
-    async function initializeAdminPage(user) {
+    function initializeAdminPage(user) {
         // Proteção: Somente o admin pode ver esta página
         if (user.uid !== 'avD0McusEgSo71zlbqMQxTx5uUm1') { // IMPORTANTE: Substitua pelo seu UID de Admin
             document.getElementById('main-page-content').innerHTML = `<div class="content-card"><p>Acesso negado.</p></div>`;
             return;
         }
 
-        const users = await db.collection('users').get();
-        const allUsersData = users.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        // Ouve as mudanças na coleção de usuários em tempo real
+        db.collection('users').onSnapshot(snapshot => {
+            const allUsersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        const searchInput = document.getElementById('admin-user-search');
-        searchInput.oninput = () => renderAdminUsersList(allUsersData, searchInput.value);
+            const searchInput = document.getElementById('admin-user-search');
+            if (searchInput) { // Garante que o elemento exista antes de adicionar o listener
+                searchInput.oninput = () => renderAdminUsersList(allUsersData, searchInput.value);
+            }
 
-        // Renderiza as estatísticas
-        const activeSubscribers = allUsersData.filter(u => u.accessValidUntil && u.accessValidUntil.toDate() > new Date()).length;
-        document.getElementById('admin-stats-total-users').textContent = allUsersData.length;
-        document.getElementById('admin-stats-active-subs').textContent = activeSubscribers;
+            // Renderiza as estatísticas
+            const activeSubscribers = allUsersData.filter(u => u.accessValidUntil && u.accessValidUntil.toDate() > new Date()).length;
+            document.getElementById('admin-stats-total-users').textContent = allUsersData.length;
+            document.getElementById('admin-stats-active-subs').textContent = activeSubscribers;
 
-        // Adiciona listener para fechar o novo modal
-        document.getElementById('admin-user-details-modal').onclick = (e) => { if (e.target.id === 'admin-user-details-modal') e.currentTarget.classList.add('hidden'); };
+            // Adiciona listener para fechar o novo modal
+            document.getElementById('admin-user-details-modal').onclick = (e) => { if (e.target.id === 'admin-user-details-modal') e.currentTarget.classList.add('hidden'); };
 
-        // Listeners do formulário de aviso
-        document.getElementById('announcement-form').onsubmit = (e) => { e.preventDefault(); publishAnnouncement(); };
-        document.getElementById('clear-announcement-btn').onclick = clearAnnouncement;
-        document.getElementById('export-users-csv-btn').onclick = () => exportUsersToCSV(allUsersData);
+            // Listeners do formulário de aviso
+            document.getElementById('announcement-form').onsubmit = (e) => { e.preventDefault(); publishAnnouncement(); };
+            document.getElementById('clear-announcement-btn').onclick = clearAnnouncement;
+            document.getElementById('export-users-csv-btn').onclick = () => exportUsersToCSV(allUsersData);
 
-        renderUserGrowthChart(allUsersData);
+            // Listeners para os novos filtros de status
+            document.querySelectorAll('.filter-group .group-btn[data-status]').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.filter-group .group-btn.active').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderAdminUsersList(allUsersData, document.getElementById('admin-user-search').value);
+                };
+            });
 
-        renderAdminUsersList(allUsersData);
+            renderUserGrowthChart(allUsersData);
+            renderAdminUsersList(allUsersData, searchInput ? searchInput.value : '');
+            // Carrega os logs do admin
+            renderAdminLogs();
+        });
     }
 
     function renderAdminUsersList(users, searchTerm = '') {
@@ -2148,32 +2190,59 @@ document.addEventListener('DOMContentLoaded', () => {
         filteredUsers.forEach(u => {
             const item = document.createElement('li');
             const validUntil = u.accessValidUntil ? u.accessValidUntil.toDate().toLocaleDateString('pt-BR') : 'Nenhum';
-            const isActive = u.accessValidUntil && u.accessValidUntil.toDate() > new Date();
+            const isPaused = u.pausedAccessDays && u.pausedAccessDays > 0;
+            const isActive = !isPaused && u.accessValidUntil && u.accessValidUntil.toDate() > new Date();
+            const statusColor = isPaused ? 'var(--accent-dark)' : (isActive ? 'var(--income-dark)' : 'var(--expense-dark)');
+            const statusText = isPaused ? `Pausado (${u.pausedAccessDays} dias restantes)` : validUntil;
 
             item.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border-dark);';
             item.innerHTML = `
                 <div>
                     <p style="font-weight: 600;">${u.email}</p>
-                    <small>Acesso válido até: <span style="color: ${isActive ? 'var(--income-dark)' : 'var(--expense-dark)'}">${validUntil}</span></small>
+                    <small>Status: <span style="color: ${statusColor}; font-weight: 600;">${statusText}</span></small>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-primary extend-30-days" style="width: auto; font-size: 12px; padding: 8px 12px;">+30 dias</button>
-                    <button class="btn-secondary extend-365-days" style="width: auto; font-size: 12px; padding: 8px 12px;">+365 dias</button>
-                    <button class="action-btn view-details" title="Ver Detalhes"><i class='bx bx-show'></i></button>
+                <div class="transaction-actions" style="display: flex; gap: 10px; align-items: center;">
+                    <button class="btn-primary recharge-access" style="width: auto; font-size: 12px; padding: 8px 12px;">Recarregar</button>
+                    <button class="action-btn recharge-access" title="Recarregar Acesso" style="display: none;"><i class='bx bxs-battery-charging'></i></button>
+                    <button class="action-btn pause-access" title="${isPaused ? 'Retomar Acesso' : 'Pausar Acesso'}" style="color: var(--accent-dark);"><i class='bx ${isPaused ? 'bx-play-circle' : 'bx-pause-circle'}'></i></button>
+                    <button class="action-btn delete-user" title="Excluir Usuário" style="color: var(--expense-dark);"><i class='bx bxs-user-x'></i></button>
+                    <button class="action-btn view-details" title="Ver Detalhes" style="display: inline-flex;"><i class='bx bx-show'></i></button>
                 </div>
             `;
 
-            item.querySelector('.extend-30-days').onclick = () => extendAccess(u.id, 30);
-            item.querySelector('.extend-365-days').onclick = () => extendAccess(u.id, 365);
+            item.querySelectorAll('.recharge-access').forEach(btn => btn.onclick = () => openRechargeModal(u));
+            item.querySelectorAll('.pause-access').forEach(btn => {
+                btn.onclick = () => togglePauseAccess(u);
+            });
+            item.querySelector('.delete-user').onclick = () => deleteUser(u.id, u.email);
 
             listEl.appendChild(item);
             item.querySelector('.view-details').onclick = () => showUserDetails(u);
         });
     }
 
-    function extendAccess(userId, days) {
-        const userRef = db.collection('users').doc(userId);
+    function openRechargeModal(user) {
+        const modal = document.getElementById('admin-recharge-modal');
+        document.getElementById('admin-recharge-form').reset();
+        document.getElementById('recharge-user-id').value = user.id;
+        document.getElementById('recharge-user-email').textContent = user.email;
+        const validUntilText = user.accessValidUntil ? user.accessValidUntil.toDate().toLocaleDateString('pt-BR') : 'Nenhum';
+        document.getElementById('recharge-user-valid-until').textContent = validUntilText;
+        modal.classList.remove('hidden');
+    }
 
+    function updateUserAccess() {
+        const userId = document.getElementById('recharge-user-id').value;
+        const action = document.getElementById('recharge-action').value;
+        const days = parseInt(document.getElementById('recharge-days').value);
+
+        if (!userId || !action || !days || days <= 0) {
+            return showToast('Por favor, preencha todos os campos corretamente.', 'error');
+        }
+
+        const userRef = db.collection('users').doc(userId);
+        const multiplier = action === 'add' ? 1 : -1;
+        
         db.runTransaction(async (transaction) => {
             const userDoc = await transaction.get(userRef);
             const userData = userDoc.exists ? userDoc.data() : {};
@@ -2181,16 +2250,93 @@ document.addEventListener('DOMContentLoaded', () => {
             const baseDate = (userData.accessValidUntil && userData.accessValidUntil.toDate() > new Date())
                 ? userData.accessValidUntil.toDate()
                 : new Date();
-
-            const newDate = new Date(baseDate.setDate(baseDate.getDate() + days));
-
+            
+            const newDate = new Date(baseDate.setDate(baseDate.getDate() + (days * multiplier)));
+            
             transaction.set(userRef, { accessValidUntil: firebase.firestore.Timestamp.fromDate(newDate) }, { merge: true });
         }).then(() => {
-            showToast(`Acesso do usuário estendido por ${days} dias.`);
+            logAdminAction(`Atualizou acesso para ${userId}. Ação: ${action}, Dias: ${days}.`, userId);
+            showToast(`Acesso do usuário atualizado com sucesso.`);
+            document.getElementById('admin-recharge-modal').classList.add('hidden');
         }).catch(err => {
-            console.error("Erro ao estender acesso: ", err);
-            showToast('Erro ao estender acesso.', 'error');
+            console.error("Erro ao atualizar acesso: ", err);
+            showToast('Erro ao atualizar acesso.', 'error');
         });
+    }
+
+    function togglePauseAccess(user) {
+        const userRef = db.collection('users').doc(user.id);
+        const isCurrentlyPaused = user.pausedAccessDays && user.pausedAccessDays > 0;
+
+        if (isCurrentlyPaused) {
+            // Lógica para RETOMAR o acesso
+            if (!confirm('Deseja retomar a assinatura deste usuário?')) return;
+
+            const remainingDays = user.pausedAccessDays;
+            const newValidUntil = new Date();
+            newValidUntil.setDate(newValidUntil.getDate() + remainingDays);
+
+            userRef.update({
+                accessValidUntil: firebase.firestore.Timestamp.fromDate(newValidUntil),
+                pausedAccessDays: firebase.firestore.FieldValue.delete() // Remove o campo
+            })
+            .then(() => {
+                logAdminAction(`Retomou assinatura de ${user.email} (${user.id}).`);
+                showToast('Assinatura do usuário retomada.');
+            }).catch(err => showToast('Erro ao retomar assinatura.', 'error'));
+
+        } else {
+            // Lógica para PAUSAR o acesso
+            if (!confirm('Deseja pausar a assinatura deste usuário? O tempo restante será salvo.')) return;
+
+            const validUntil = user.accessValidUntil?.toDate();
+            if (!validUntil || validUntil <= new Date()) {
+                return showToast('Não é possível pausar uma assinatura inativa ou expirada.', 'error');
+            }
+
+            const remainingTime = validUntil.getTime() - new Date().getTime();
+            const remainingDays = Math.ceil(remainingTime / (1000 * 60 * 60 * 24));
+
+            userRef.update({
+                accessValidUntil: firebase.firestore.Timestamp.fromDate(new Date(0)), // Data no passado para invalidar
+                pausedAccessDays: remainingDays
+            }).then(() => {
+                logAdminAction(`Pausou assinatura de ${user.email} (${user.id}).`);
+                showToast('Assinatura pausada com sucesso.');
+            }).catch(err => showToast('Erro ao pausar assinatura.', 'error'));
+        }
+    }
+
+    async function deleteUser(userId, userEmail) {
+        if (!confirm(`ATENÇÃO: Esta ação é irreversível!\n\nVocê tem certeza que deseja excluir permanentemente o usuário ${userEmail} e todos os seus dados (lançamentos, contas, etc.)?`)) {
+            return;
+        }
+
+        try {
+            const idToken = await auth.currentUser.getIdToken();
+            // Usar uma URL relativa para funcionar tanto em localhost (com proxy) quanto na Vercel.
+            // A Vercel irá rotear automaticamente /api/deleteUser para a função em /api/server.js
+            const response = await fetch('/api/deleteUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({ uidToDelete: userId })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.message || 'Falha ao excluir usuário.');
+            }
+
+            showToast(result.message || `Usuário ${userEmail} excluído com sucesso.`);
+
+        } catch (error) {
+            console.error("Erro ao excluir usuário:", error);
+            showToast(error.message || 'Ocorreu um erro ao excluir o usuário.', 'error');
+        }
     }
 
     async function showUserDetails(user) {
@@ -2274,6 +2420,28 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    async function logAdminAction(action, targetUserId = null) {
+        const adminUser = auth.currentUser;
+        if (!adminUser) return;
+
+        const logData = {
+            adminId: adminUser.uid,
+            action: action,
+            timestamp: new Date().toISOString()
+        };
+
+        const batch = db.batch();
+        const adminLogRef = db.collection('admin_logs').doc();
+        batch.set(adminLogRef, logData);
+
+        if (targetUserId) {
+            const userHistoryRef = db.collection('users').doc(targetUserId).collection('payment_history').doc();
+            batch.set(userHistoryRef, logData);
+        }
+
+        await batch.commit().catch(err => console.error("Erro ao registrar log:", err));
+    }
+
     // --- LÓGICA DE AVISO GLOBAL ---
 
     function checkForAnnouncement(userId) {
@@ -2339,6 +2507,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 message: message,
                 updatedAt: new Date().toISOString()
             });
+            await logAdminAction(`Publicou aviso global: "${message.substring(0, 50)}..."`);
             showToast('Aviso publicado com sucesso!');
             document.getElementById('announcement-message').value = '';
         } catch (error) {
@@ -2350,8 +2519,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function clearAnnouncement() {
         if (confirm('Tem certeza que deseja remover o aviso atual?')) {
-            await db.collection('app_settings').doc('announcement').set({ message: '' });
-            showToast('Aviso removido.');
+            try {
+                await db.collection('app_settings').doc('announcement').set({ message: '' });
+                await logAdminAction('Removeu o aviso global.');
+                showToast('Aviso removido.');
+            } catch (error) {
+                showToast('Erro ao remover aviso.', 'error');
+            }
         }
     }
 
@@ -2376,22 +2550,163 @@ document.addEventListener('DOMContentLoaded', () => {
         link.click();
     }
 
-    function generatePixQRCode() {
-        const container = document.getElementById('pix-qrcode-container');
+    function renderSubscriptionHistory(userId) {
+        const listEl = document.getElementById('subscription-history-list');
+        if (!listEl) return;
+
+        db.collection('users').doc(userId).collection('payment_history').orderBy('timestamp', 'desc').limit(10)
+            .onSnapshot(snapshot => {
+                if (snapshot.empty) {
+                    listEl.innerHTML = '<li>Nenhum histórico de pagamento encontrado.</li>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const log = doc.data();
+                    const item = document.createElement('li');
+                    const logDate = new Date(log.timestamp).toLocaleDateString('pt-BR');
+                    item.innerHTML = `<span>Recarga de acesso realizada</span><small>${logDate}</small>`;
+                    listEl.appendChild(item);
+                });
+            });
+    }
+
+    function renderAdminLogs() {
+        const listEl = document.getElementById('admin-logs-list');
+        if (!listEl) return;
+
+        db.collection('admin_logs').orderBy('timestamp', 'desc').limit(15).onSnapshot(snapshot => {
+            if (snapshot.empty) {
+                listEl.innerHTML = '<li>Nenhuma atividade registrada.</li>';
+                return;
+            }
+            listEl.innerHTML = '';
+            snapshot.forEach(doc => {
+                const log = doc.data();
+                const item = document.createElement('li');
+                const logDate = new Date(log.timestamp).toLocaleString('pt-BR');
+                item.innerHTML = `<span>${log.action}</span><small>${logDate}</small>`;
+                listEl.appendChild(item);
+            });
+        });
+    }
+
+    function initializeMonthsSelector(selectElement) {
+        selectElement.innerHTML = '';
+        for (let i = 1; i <= 12; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = `${i} ${i > 1 ? 'Meses' : 'Mês'}`;
+            selectElement.appendChild(option);
+        }
+        selectElement.onchange = () => {
+            const months = parseInt(selectElement.value);
+            const totalValue = (14.90 * months).toFixed(2);
+            document.getElementById('payment-total-value').textContent = `R$ ${totalValue.replace('.', ',')}`;
+        };
+    }
+
+    function openPaymentModal() {
+        const modal = document.getElementById('payment-modal');
+        if (!modal) return;
+        document.getElementById('payment-form').reset();
+        document.getElementById('payment-total-value').textContent = 'R$ 14,90';
+        document.getElementById('payment-qrcode-container').classList.add('hidden');
+        document.getElementById('pix-key-display').classList.add('hidden');
+        document.getElementById('confirm-payment-btn').disabled = true;
+        modal.classList.remove('hidden');
+    }
+
+    function generatePaymentQRCode() {
+        const container = document.getElementById('payment-qrcode-container');
+        const pixKeyDisplay = document.getElementById('pix-key-display');
+        const confirmBtn = document.getElementById('confirm-payment-btn');
         if (!container) return;
 
-        // IMPORTANTE: Gere sua string "PIX Copia e Cola" em um gerador online e cole aqui.
-        // Esta é uma string de exemplo e NÃO FUNCIONARÁ.
-        const pixPayload = "00020126580014br.gov.bcb.pix0136seu-email-pix@dominio.com520400005303986540519.905802BR5913NOME DO TITULAR6009SAO PAULO62070503***6304ABCD";
+        const months = parseInt(document.getElementById('payment-months').value);
+        const totalValue = (14.90 * months).toFixed(2);
 
-        const qr = new QRCode(document.createElement('div'), {
+        // Função para formatar o valor para o payload PIX (ex: 14.90 -> 14.90)
+        const formatValue = (val) => val.toString();
+
+        // Função para gerar o payload do PIX (simplificado)
+        const generatePixPayload = (key, name, city, value, txid = '***') => {
+            name = name.substring(0, 25);
+            city = city.substring(0, 15);
+
+            const gui = "0014BR.GOV.BCB.PIX";
+            const keyPart = `01${key.length.toString().padStart(2, '0')}${key}`;
+
+            const payloadParts = {
+                payloadFormat: '000201',
+                merchantAccount: `26${(gui.length + keyPart.length).toString().padStart(2, '0')}${gui}${keyPart}`,
+                merchantCategory: '52040000',
+                transactionCurrency: '5303986',
+                transactionAmount: `54${value.length.toString().padStart(2, '0')}${value}`,
+                countryCode: '5802BR',
+                merchantName: `59${name.length.toString().padStart(2, '0')}${name}`,
+                merchantCity: `60${city.length.toString().padStart(2, '0')}${city}`,
+                additionalData: `62${('05' + txid.length).length.toString().padStart(2, '0')}05${txid.length.toString().padStart(2, '0')}${txid}`
+            };
+
+            const payloadString = Object.values(payloadParts).join('');
+            const crc16 = calculateCRC16(payloadString + '6304');
+
+            return payloadString + `6304${crc16}`;
+        };
+
+        const calculateCRC16 = (payload) => {
+            let crc = 0xFFFF;
+            const polynomial = 0x1021;
+
+            for (let i = 0; i < payload.length; i++) {
+                crc ^= (payload.charCodeAt(i) & 0xFF) << 8;
+                for (let j = 0; j < 8; j++) {
+                    if ((crc & 0x8000) !== 0) {
+                        crc = (crc << 1) ^ polynomial;
+                    } else {
+                        crc <<= 1;
+                    }
+                }
+            }
+            return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+        };
+
+        // IMPORTANTE: Substitua "SUA_CHAVE_PIX_REAL" pela sua chave PIX.
+        const pixPayload = generatePixPayload("81999902392", "TIBERIO RAFAEL", "Recife", formatValue(totalValue), "FINANCEJR");
+
+        container.innerHTML = ''; // Limpa o contêiner antes de gerar um novo QR Code
+        const qrCodeElement = document.createElement('div');
+        // Correção: A biblioteca qrcode-generator usa 'qrcode' em minúsculas.
+        const qr = qrcode(0, 'H'); // 0 = auto-detect type, H = high correction
+        qr.addData(pixPayload);
+        qr.make();
+        qrCodeElement.innerHTML = qr.createImgTag(4, 8); // 4 = module size, 8 = margin
+        /* new QRCode(qrCodeElement, {
             text: pixPayload,
-            width: 128,
-            height: 128,
+            width: 150,
+            height: 150,
             colorDark: "#000000",
             colorLight: "#ffffff",
             correctLevel: QRCode.CorrectLevel.H
         });
-        container.innerHTML = qr._el.innerHTML;
+        */container.appendChild(qrCodeElement);
+        container.classList.remove('hidden');
+        pixKeyDisplay.classList.remove('hidden');
+        confirmBtn.disabled = false;
+    }
+
+    async function handlePaymentConfirmation() {
+        const user = auth.currentUser;
+        if (!user) return showToast('Usuário não encontrado.', 'error');
+
+        const months = document.getElementById('payment-months').value;
+        const totalValue = document.getElementById('payment-total-value').textContent;
+
+        const actionMessage = `Usuário ${user.email} confirmou pagamento de ${totalValue} para ${months} mes(es).`;
+        await logAdminAction(actionMessage);
+
+        document.getElementById('payment-modal').classList.add('hidden');
+        showToast('Confirmação enviada! Seu acesso será liberado em breve.');
     }
 });
